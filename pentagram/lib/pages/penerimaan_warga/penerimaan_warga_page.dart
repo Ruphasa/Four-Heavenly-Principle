@@ -84,21 +84,23 @@ class _PenerimaanWargaPageState extends ConsumerState<PenerimaanWargaPage> {
   @override
   void initState() {
     super.initState();
+    // Initial refresh is fine here
     Future.microtask(() async {
-      ref.listen(penerimaanWargaControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Penerimaan Warga error: $error')),
-          );
-        }
-      });
       await ref.read(penerimaanWargaControllerProvider.notifier).refresh();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Error listener must be inside build
+    ref.listen(penerimaanWargaControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Penerimaan Warga error: $error')),
+        );
+      }
+    });
     final filteredList = wargaList.where((w) {
       
       final matchesGender =

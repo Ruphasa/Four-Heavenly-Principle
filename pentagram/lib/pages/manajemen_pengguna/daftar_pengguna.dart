@@ -38,22 +38,23 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
   @override
   void initState() {
     super.initState();
-    // Listen for errors and trigger initial refresh
+    // Trigger initial refresh only
     Future.microtask(() {
-      ref.listen(manajemenPenggunaControllerProvider, (prev, next) {
-        final msg = next.error;
-        if (msg != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-          );
-        }
-      });
       ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for errors inside build
+    ref.listen(manajemenPenggunaControllerProvider, (prev, next) {
+      final msg = next.error;
+      if (msg != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+        );
+      }
+    });
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

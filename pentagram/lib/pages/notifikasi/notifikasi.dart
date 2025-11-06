@@ -23,14 +23,6 @@ class _NotifikasiState extends ConsumerState<Notifikasi>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() async {
-      ref.listen(notifikasiControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Notifikasi error: $error')),
-          );
-        }
-      });
       await ref.read(notifikasiControllerProvider.notifier).refresh();
     });
   }
@@ -53,6 +45,15 @@ class _NotifikasiState extends ConsumerState<Notifikasi>
 
   @override
   Widget build(BuildContext context) {
+    // Error listener must be inside build
+    ref.listen(notifikasiControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Notifikasi error: $error')),
+        );
+      }
+    });
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

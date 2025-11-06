@@ -15,21 +15,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   void initState() {
     super.initState();
-    // Listen for registration errors globally on this page
-    Future.microtask(() {
-      ref.listen(registerControllerProvider, (prev, next) {
-        final msg = next.error;
-        if (msg != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-          );
-        }
-      });
-    });
+    // No-op: listeners must be inside build
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for registration errors globally on this page
+    ref.listen(registerControllerProvider, (prev, next) {
+      final msg = next.error;
+      if (msg != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+        );
+      }
+    });
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(

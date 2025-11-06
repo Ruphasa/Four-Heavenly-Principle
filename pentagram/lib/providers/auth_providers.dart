@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/services/auth_service.dart';
 
@@ -36,23 +37,32 @@ class AuthController extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      final ok = await _ref.read(authServiceProvider).login(
-            email: email,
-            password: password,
-          );
+      final ok = await _ref
+          .read(authServiceProvider)
+          .login(email: email, password: password)
+          .timeout(const Duration(seconds: 15));
+
       state = state.copyWith(
-        isLoading: false,
         isAuthenticated: ok,
         errorMessage: ok ? null : 'Email atau password salah',
       );
       return ok;
+    } on TimeoutException {
+      state = state.copyWith(
+        isAuthenticated: false,
+        errorMessage:
+            'Waktu koneksi habis. Periksa internet Anda lalu coba lagi.',
+      );
+      return false;
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
         isAuthenticated: false,
         errorMessage: 'Gagal login: $e',
       );
       return false;
+    } finally {
+      // Pastikan loading selalu dimatikan apapun hasilnya
+      state = state.copyWith(isLoading: false);
     }
   }
 

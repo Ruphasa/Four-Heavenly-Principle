@@ -32,14 +32,6 @@ class _MasyarakatPageState extends ConsumerState<MasyarakatPage>
 
     // Initial provider refresh + error listener.
     Future.microtask(() async {
-      ref.listen(masyarakatControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Masyarakat error: $error')),
-          );
-        }
-      });
       await ref.read(masyarakatControllerProvider.notifier).refresh();
     });
   }
@@ -84,6 +76,15 @@ class _MasyarakatPageState extends ConsumerState<MasyarakatPage>
   @override
   Widget build(BuildContext context) {
   // final screenWidth = MediaQuery.of(context).size.width;
+    // Error listener should be inside build
+    ref.listen(masyarakatControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Masyarakat error: $error')),
+        );
+      }
+    });
     
     return DefaultTabController(
       length: 3,

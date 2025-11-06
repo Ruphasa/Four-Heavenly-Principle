@@ -39,15 +39,6 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
     // Kick off a background refresh so stats/widgets depending on finance
     // can react when we migrate them to provider-driven data.
     Future.microtask(() async {
-      // Add a simple error listener for controller state.
-      ref.listen(keuanganControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Keuangan error: $error')),
-          );
-        }
-      });
       await ref.read(keuanganControllerProvider.notifier).refresh();
     });
   }
@@ -80,6 +71,16 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
   @override
   Widget build(BuildContext context) {
   // screen width available if needed for responsive tweaks
+  
+    // Add a simple error listener for controller state (inside build)
+    ref.listen(keuanganControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Keuangan error: $error')),
+        );
+      }
+    });
   
     return Scaffold(
       backgroundColor: AppColors.background,

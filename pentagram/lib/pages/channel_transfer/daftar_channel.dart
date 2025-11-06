@@ -17,14 +17,6 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      ref.listen(channelTransferControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Channel Transfer error: $error')),
-          );
-        }
-      });
       await ref.read(channelTransferControllerProvider.notifier).refresh();
     });
   }
@@ -52,6 +44,15 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Error listener (inside build)
+    ref.listen(channelTransferControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Channel Transfer error: $error')),
+        );
+      }
+    });
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

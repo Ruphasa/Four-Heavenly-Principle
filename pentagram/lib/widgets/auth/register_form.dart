@@ -40,20 +40,20 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.listen(registerControllerProvider, (prev, next) {
-        final msg = next.error;
-        if (msg != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-          );
-        }
-      });
-    });
+    // Listener must be placed in build; nothing to init here for now
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show registration errors as snackbars
+    ref.listen(registerControllerProvider, (prev, next) {
+      final msg = next.error;
+      if (msg != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+        );
+      }
+    });
     return Container(
       constraints: const BoxConstraints(maxWidth: 600),
       padding: const EdgeInsets.all(32),

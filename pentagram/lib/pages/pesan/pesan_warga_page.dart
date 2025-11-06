@@ -100,6 +100,15 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Initial refresh only
+    Future.microtask(() {
+      ref.read(pesanControllerProvider.notifier).refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -123,17 +132,14 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
 
   @override
   Widget build(BuildContext context) {
-    // One-time provider init + error listener
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listen(pesanControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Pesan error: $error')),
-          );
-        }
-      });
-      ref.read(pesanControllerProvider.notifier).refresh();
+    // Error listener must be inside build
+    ref.listen(pesanControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pesan error: $error')),
+        );
+      }
     });
 
     final filteredList = _pesanList.where((p) {

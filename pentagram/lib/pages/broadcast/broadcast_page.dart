@@ -35,15 +35,6 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
       });
     });
     _scrollController.addListener(_onScroll);
-    // Listen for controller errors to surface to UI
-    ref.listen(broadcastControllerProvider, (previous, next) {
-      final error = next.error;
-      if (error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      }
-    });
     _loadMessages();
   }
 
@@ -89,6 +80,16 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
   Widget build(BuildContext context) {
     final stats = _broadcastService.getBroadcastStatistics();
     final responsive = context.responsive;
+
+    // Listen for controller errors to surface to UI (inside build)
+    ref.listen(broadcastControllerProvider, (previous, next) {
+      final error = next.error;
+      if (error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),

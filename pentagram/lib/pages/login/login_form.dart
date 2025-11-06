@@ -38,6 +38,13 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   bool _isHoveringButton = false;
   bool _isHoveringRegister = false;
   
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+  
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
@@ -53,8 +60,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     final ok = await ref.read(authControllerProvider.notifier).login(email, password);
     if (!mounted) return;    
     if (ok) {
-      // Add a smooth transition
-      await Navigator.pushReplacement(
+      // Add a smooth transition (don't await so this method can complete)
+      if (!mounted) return;
+      Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => const MainPage(),
@@ -70,8 +78,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         ),
       );
     } else {
+      final message = ref.read(authControllerProvider).errorMessage ?? 'Email atau password salah';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email atau password salah')),
+        SnackBar(content: Text(message)),
       );
     }
   }
@@ -265,7 +274,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                 : null,
           ),
           child: ElevatedButton(
-            onPressed: ref.read(authControllerProvider).isLoading ? null : _login,
+            onPressed: ref.watch(authControllerProvider).isLoading ? null : _login,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,

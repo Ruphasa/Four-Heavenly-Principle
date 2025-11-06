@@ -18,14 +18,6 @@ class _DaftarMutasiPageState extends ConsumerState<DaftarMutasiPage> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      ref.listen(mutasiKeluargaControllerProvider, (prev, next) {
-        final error = next.error;
-        if (error != null && error.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Mutasi Keluarga error: $error')),
-          );
-        }
-      });
       await ref.read(mutasiKeluargaControllerProvider.notifier).refresh();
     });
   }
@@ -141,6 +133,16 @@ class _DaftarMutasiPageState extends ConsumerState<DaftarMutasiPage> {
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
+
+    // Error listener in build
+    ref.listen(mutasiKeluargaControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Mutasi Keluarga error: $error')),
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,

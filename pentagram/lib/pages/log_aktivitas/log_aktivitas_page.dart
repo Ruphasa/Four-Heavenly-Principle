@@ -27,15 +27,7 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
     super.initState();
     _loadLogs();
     _searchController.addListener(_onSearchChanged);
-    // listen for errors
-    ref.listen(logAktivitasControllerProvider, (previous, next) {
-      final error = next.error;
-      if (error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      }
-    });
+    // Initial refresh happens in _loadLogs; listeners must be in build
   }
 
   @override
@@ -72,6 +64,15 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
 
   @override
   Widget build(BuildContext context) {
+    // listen for errors (inside build)
+    ref.listen(logAktivitasControllerProvider, (previous, next) {
+      final error = next.error;
+      if (error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+    });
     final content = Column(
         children: [
           // Search Bar + Filter Button

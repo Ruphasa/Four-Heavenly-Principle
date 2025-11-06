@@ -17,10 +17,10 @@ class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
   
   final List<Widget> _pages = [
-    const Dashboard(),
-    const ActivityView(),
-    const KeuanganPage(),
-    const MasyarakatPage(),
+    const HeroMode(enabled: false, child: Dashboard()),
+    const HeroMode(enabled: false, child: ActivityView()),
+    const HeroMode(enabled: false, child: KeuanganPage()),
+    const HeroMode(enabled: false, child: MasyarakatPage()),
   ];
 
   @override

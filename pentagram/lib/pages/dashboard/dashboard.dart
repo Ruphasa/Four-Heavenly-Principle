@@ -28,15 +28,6 @@ class _DashboardState extends ConsumerState<Dashboard> {
   @override
   void initState() {
     super.initState();
-    // Listen for provider errors and surface them
-    ref.listen(logAktivitasControllerProvider, (previous, next) {
-      final error = next.error;
-      if (error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      }
-    });
     _loadData();
   }
 
@@ -53,6 +44,16 @@ class _DashboardState extends ConsumerState<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for provider errors and surface them (must be inside build)
+    ref.listen(logAktivitasControllerProvider, (previous, next) {
+      final error = next.error;
+      if (error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const DashboardAppBar(),
