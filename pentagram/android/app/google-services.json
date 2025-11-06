@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "909346740133",
+    "project_id": "pentagram-smt5",
+    "storage_bucket": "pentagram-smt5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:909346740133:android:dd8262e93df31a382c7a4c",
+        "android_client_info": {
+          "package_name": "com.example.pentagram"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvpiHMe2o82fFRG5Q0imPOCzK1riz5GDo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
