@@ -6,6 +6,7 @@ import 'package:pentagram/models/pesan_warga.dart';
 import 'package:pentagram/widgets/pesan/pesan_card.dart';
 import 'package:pentagram/widgets/pesan/filter_pesan_dialog.dart';
 import 'package:pentagram/pages/pesan/detail_pesan.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
 class PesanWargaPage extends ConsumerStatefulWidget {
   final bool embedded;
@@ -19,85 +20,7 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
   final TextEditingController _searchController = TextEditingController();
   String selectedFilter = 'Semua';
 
-  final List<PesanWarga> _pesanList = [
-    PesanWarga(
-      nama: 'Ahmad Subarjo',
-      pesan: 'Kapan ada rapat RT bulan ini?',
-      waktu: '10:30',
-      unread: true,
-      avatar: 'AS',
-    ),
-    PesanWarga(
-      nama: 'Budi Santoso',
-      pesan: 'Terima kasih atas informasinya',
-      waktu: 'Kemarin',
-      unread: false,
-      avatar: 'BS',
-    ),
-    PesanWarga(
-      nama: 'Siti Aminah',
-      pesan: 'Bagaimana cara membayar iuran bulanan?',
-      waktu: '2 hari lalu',
-      unread: true,
-      avatar: 'SA',
-    ),
-    PesanWarga(
-      nama: 'Andi Wijaya',
-      pesan: 'Mohon informasi jadwal kerja bakti',
-      waktu: '3 hari lalu',
-      unread: false,
-      avatar: 'AW',
-    ),
-    PesanWarga(
-      nama: 'Rina Kartika',
-      pesan: 'Apakah taman depan akan diperbaiki minggu ini?',
-      waktu: '4 hari lalu',
-      unread: true,
-      avatar: 'RK',
-    ),
-    PesanWarga(
-      nama: 'Dewi Lestari',
-      pesan: 'Laporan saya tentang lampu jalan belum ditindaklanjuti.',
-      waktu: '5 hari lalu',
-      unread: false,
-      avatar: 'DL',
-    ),
-    PesanWarga(
-      nama: 'Fajar Pratama',
-      pesan: 'Saya ingin mendaftar jadi relawan kebersihan.',
-      waktu: '6 hari lalu',
-      unread: true,
-      avatar: 'FP',
-    ),
-    PesanWarga(
-      nama: 'Lukman Hakim',
-      pesan: 'Apakah bisa membayar iuran lewat transfer?',
-      waktu: '7 hari lalu',
-      unread: false,
-      avatar: 'LH',
-    ),
-    PesanWarga(
-      nama: 'Tina Marlina',
-      pesan: 'Kapan jadwal pengangkutan sampah berikutnya?',
-      waktu: '1 minggu lalu',
-      unread: true,
-      avatar: 'TM',
-    ),
-    PesanWarga(
-      nama: 'Wawan Setiawan',
-      pesan: 'Saya kehilangan kartu warga, bagaimana cara buat baru?',
-      waktu: '2 minggu lalu',
-      unread: false,
-      avatar: 'WS',
-    ),
-    PesanWarga(
-      nama: 'Nur Aini',
-      pesan: 'Mohon diperbaiki got depan rumah saya tersumbat.',
-      waktu: '2 minggu lalu',
-      unread: true,
-      avatar: 'NA',
-    ),
-  ];
+  // Firestore will be the source of truth via pesanStreamProvider
 
   @override
   void initState() {
@@ -142,7 +65,8 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
       }
     });
 
-    final filteredList = _pesanList.where((p) {
+    final pesanAsync = ref.watch(pesanStreamProvider);
+    final filteredList = (pesanAsync.asData?.value ?? const <PesanWarga>[]).where((p) {
       if (selectedFilter == 'Belum Dibaca' && !p.unread) return false;
       if (selectedFilter == 'Sudah Dibaca' && p.unread) return false;
       return true;
@@ -213,27 +137,31 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
 
           // Messages List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredList.length,
-              itemBuilder: (context, index) {
-                final pesan = filteredList[index];
-                return PesanCard(
-                  pesan: pesan,
+            child: pesanAsync.when(
+              data: (list) => ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: filteredList.length,
+                itemBuilder: (context, index) {
+                  final pesan = filteredList[index];
+                  return PesanCard(
+                    pesan: pesan,
                     onTap: () {
-                    DetailPesanOverlay.show(
-                      context,
-                      PesanWarga(
-                        nama: pesan.nama,
-                        pesan: pesan.pesan,
-                        waktu: pesan.waktu,
-                        unread: pesan.unread,
-                        avatar: pesan.avatar,
-                      ),
-                    );
-                  },
-                );
-              },
+                      DetailPesanOverlay.show(
+                        context,
+                        PesanWarga(
+                          nama: pesan.nama,
+                          pesan: pesan.pesan,
+                          waktu: pesan.waktu,
+                          unread: pesan.unread,
+                          avatar: pesan.avatar,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
             ),
           ),
         ],
@@ -252,6 +180,31 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_comment_rounded),
+            tooltip: 'Tambah pesan contoh',
+            onPressed: () async {
+              final repo = ref.read(pesanRepositoryProvider);
+              try {
+                await repo.create(PesanWarga(
+                  nama: 'Admin',
+                  pesan: 'Halo warga, ini contoh pesan.',
+                  waktu: 'now',
+                  unread: true,
+                  avatar: 'AD',
+                ));
+              } catch (e) {
+                final msg = e.toString().contains('permission-denied')
+                    ? 'Akses Firestore ditolak (permission-denied). Perbarui rules atau pastikan sudah login.'
+                    : 'Gagal membuat pesan: $e';
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(msg)),
+                  );
+                }
+              }
+            },
           ),
         ],
       ),

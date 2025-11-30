@@ -41,48 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCPtQehtltLruHNtCaCI3qvpeoEc05yBiU',
-    appId: '1:909346740133:web:dec8e7fd302600c22c7a4c',
-    messagingSenderId: '909346740133',
-    projectId: 'pentagram-smt5',
-    authDomain: 'pentagram-smt5.firebaseapp.com',
-    storageBucket: 'pentagram-smt5.firebasestorage.app',
-    measurementId: 'G-QJGR9K6GZW',
+    apiKey: 'AIzaSyBUtFxVW_ep12H7MJ-Qr1M72RzIygVSA8s',
+    appId: '1:389190829565:web:7fb480c2cc7ae51be84594',
+    messagingSenderId: '389190829565',
+    projectId: 'gen-lang-client-0559167490',
+    authDomain: 'gen-lang-client-0559167490.firebaseapp.com',
+    storageBucket: 'gen-lang-client-0559167490.firebasestorage.app',
+    measurementId: 'G-D05J0W1FNP',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDvpiHMe2o82fFRG5Q0imPOCzK1riz5GDo',
-    appId: '1:909346740133:android:dd8262e93df31a382c7a4c',
-    messagingSenderId: '909346740133',
-    projectId: 'pentagram-smt5',
-    storageBucket: 'pentagram-smt5.firebasestorage.app',
+    apiKey: 'AIzaSyBmrQ3iA6Qrg4fvTTpFJN8Wcm0xhPmiFpQ',
+    appId: '1:389190829565:android:9e53265a8df31008e84594',
+    messagingSenderId: '389190829565',
+    projectId: 'gen-lang-client-0559167490',
+    storageBucket: 'gen-lang-client-0559167490.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBTvY8LMZgH51USRaJ7LkM1aTdKIFxOajo',
-    appId: '1:909346740133:ios:36c5c4a9a59c88082c7a4c',
-    messagingSenderId: '909346740133',
-    projectId: 'pentagram-smt5',
-    storageBucket: 'pentagram-smt5.firebasestorage.app',
+    apiKey: 'AIzaSyBE6BK15hoiefSKNcyE7IKqLmqXhcsPxmE',
+    appId: '1:389190829565:ios:78f649931da8b945e84594',
+    messagingSenderId: '389190829565',
+    projectId: 'gen-lang-client-0559167490',
+    storageBucket: 'gen-lang-client-0559167490.firebasestorage.app',
     iosBundleId: 'com.example.pentagram',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBTvY8LMZgH51USRaJ7LkM1aTdKIFxOajo',
-    appId: '1:909346740133:ios:36c5c4a9a59c88082c7a4c',
-    messagingSenderId: '909346740133',
-    projectId: 'pentagram-smt5',
-    storageBucket: 'pentagram-smt5.firebasestorage.app',
+    apiKey: 'AIzaSyBE6BK15hoiefSKNcyE7IKqLmqXhcsPxmE',
+    appId: '1:389190829565:ios:78f649931da8b945e84594',
+    messagingSenderId: '389190829565',
+    projectId: 'gen-lang-client-0559167490',
+    storageBucket: 'gen-lang-client-0559167490.firebasestorage.app',
     iosBundleId: 'com.example.pentagram',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCPtQehtltLruHNtCaCI3qvpeoEc05yBiU',
-    appId: '1:909346740133:web:557512721af327992c7a4c',
-    messagingSenderId: '909346740133',
-    projectId: 'pentagram-smt5',
-    authDomain: 'pentagram-smt5.firebaseapp.com',
-    storageBucket: 'pentagram-smt5.firebasestorage.app',
-    measurementId: 'G-DENMKYQ9JE',
+    apiKey: 'AIzaSyBUtFxVW_ep12H7MJ-Qr1M72RzIygVSA8s',
+    appId: '1:389190829565:web:8bd06c0bc42952b6e84594',
+    messagingSenderId: '389190829565',
+    projectId: 'gen-lang-client-0559167490',
+    authDomain: 'gen-lang-client-0559167490.firebaseapp.com',
+    storageBucket: 'gen-lang-client-0559167490.firebasestorage.app',
+    measurementId: 'G-0F93B10M8C',
   );
+
 }

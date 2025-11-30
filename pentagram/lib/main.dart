@@ -6,6 +6,7 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pentagram/firebase_options.dart';
+import 'package:pentagram/dev/seed_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,7 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Seeding moved to after login to ensure auth state is ready
   
   runApp(
     const ProviderScope(

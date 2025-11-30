@@ -4,6 +4,7 @@ import 'package:pentagram/pages/main_page.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/pages/register/register_page.dart';
 import 'package:pentagram/providers/auth_providers.dart';
+import 'package:pentagram/dev/seed_firestore.dart';
 
 class LoginHeader extends StatelessWidget {
   const LoginHeader({super.key});
@@ -60,6 +61,9 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     final ok = await ref.read(authControllerProvider.notifier).login(email, password);
     if (!mounted) return;    
     if (ok) {
+      // Seed Firestore after successful login (user is now authenticated)
+      await seedFirestore();
+      
       // Add a smooth transition (don't await so this method can complete)
       if (!mounted) return;
       Navigator.pushReplacement(
