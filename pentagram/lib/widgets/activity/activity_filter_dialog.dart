@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:pentagram/services/activity_service.dart';
 import 'package:pentagram/utils/app_colors.dart';
 
+class ActivityCategorySummary {
+  final String name;
+  final int count;
+
+  const ActivityCategorySummary(this.name, this.count);
+}
+
 class ActivityFilterDialog extends StatelessWidget {
-  final ActivityService activityService;
+  final List<ActivityCategorySummary> categories;
   final Function(String) onCategorySelected;
 
   const ActivityFilterDialog({
     super.key,
-    required this.activityService,
+    required this.categories,
     required this.onCategorySelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final categories = activityService.getPopularCategories();
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -52,15 +56,12 @@ class ActivityFilterDialog extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: categories.map((cat) {
-                  final category = cat['kategori'] as String;
-                  final count = cat['count'] as int;
-
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       onTap: () {
                         Navigator.pop(context);
-                        onCategorySelected(category);
+                        onCategorySelected(cat.name);
                       },
                       leading: Container(
                         padding: const EdgeInsets.all(8),
@@ -75,7 +76,7 @@ class ActivityFilterDialog extends StatelessWidget {
                         ),
                       ),
                       title: Text(
-                        category,
+                        cat.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                         ),
@@ -90,7 +91,7 @@ class ActivityFilterDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '$count',
+                          '${cat.count}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -132,7 +133,7 @@ class ActivityFilterDialog extends StatelessWidget {
 
   static void show(
     BuildContext context, {
-    required ActivityService activityService,
+    required List<ActivityCategorySummary> categories,
     required Function(String) onCategorySelected,
   }) {
     showModalBottomSheet(
@@ -140,7 +141,7 @@ class ActivityFilterDialog extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => ActivityFilterDialog(
-        activityService: activityService,
+        categories: categories,
         onCategorySelected: onCategorySelected,
       ),
     );

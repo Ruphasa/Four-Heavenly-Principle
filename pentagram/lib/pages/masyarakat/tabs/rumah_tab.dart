@@ -1,50 +1,104 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/masyarakat/rumah_card.dart';
 
-class RumahTab extends StatelessWidget {
+class RumahTab extends ConsumerWidget {
   const RumahTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final housesAsync = ref.watch(housesStreamProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
+      child: housesAsync.when(
+        data: (houses) {
+          if (houses.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final house = houses[index];
+              return RumahCard(
+                alamat: house.address,
+                rt: house.rt,
+                rw: house.rw,
+                kepalaKeluarga: house.headName,
+                status: house.status,
+                statusColor: _statusColor(house.status),
+              );
+            },
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemCount: houses.length,
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => _buildErrorState(err),
+      ),
+    );
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'dihuni':
+      case 'ditempati':
+        return AppColors.success;
+      case 'kosong':
+        return AppColors.textSecondary;
+      default:
+        return AppColors.accent;
+    }
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      margin: const EdgeInsets.only(top: 32),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: const [
+          Icon(Icons.home_outlined, color: AppColors.textMuted, size: 32),
+          SizedBox(height: 12),
+          Text(
+            'Belum ada data rumah',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(Object error) {
+    return Container(
+      margin: const EdgeInsets.only(top: 32),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withOpacity(0.2)),
+      ),
       child: Column(
         children: [
-          const RumahCard(
-            alamat: 'Jl. Mawar No. 12',
-            rt: '08',
-            rw: '03',
-            kepalaKeluarga: 'Ahmad Subarjo',
-            status: 'Ditempati',
-            statusColor: AppColors.success,
-          ),
+          const Icon(Icons.error_outline, color: AppColors.error),
           const SizedBox(height: 12),
-          const RumahCard(
-            alamat: 'Jl. Melati No. 8',
-            rt: '08',
-            rw: '03',
-            kepalaKeluarga: 'Budi Santoso',
-            status: 'Ditempati',
-            statusColor: AppColors.success,
+          const Text(
+            'Gagal memuat data rumah',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 12),
-          const RumahCard(
-            alamat: 'Jl. Anggrek No. 15',
-            rt: '08',
-            rw: '03',
-            kepalaKeluarga: 'Andi Wijaya',
-            status: 'Ditempati',
-            statusColor: AppColors.success,
-          ),
-          const SizedBox(height: 12),
-          const RumahCard(
-            alamat: 'Jl. Dahlia No. 20',
-            rt: '08',
-            rw: '03',
-            kepalaKeluarga: '-',
-            status: 'Kosong',
-            statusColor: AppColors.textSecondary,
+          const SizedBox(height: 8),
+          Text(
+            error.toString(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),

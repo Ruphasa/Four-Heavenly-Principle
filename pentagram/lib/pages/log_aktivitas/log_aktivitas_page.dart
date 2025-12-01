@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/models/activity_log.dart';
-import 'package:pentagram/services/activity_log_service.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/activity_helper.dart';
 import 'package:pentagram/widgets/log_aktivitas/filter_aktivitas_dialog.dart';
-import 'package:pentagram/providers/app_providers.dart';
 
 class LogAktivitasPage extends ConsumerStatefulWidget {
   final bool embedded;
@@ -17,38 +16,17 @@ class LogAktivitasPage extends ConsumerStatefulWidget {
 
 class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
   final TextEditingController _searchController = TextEditingController();
-  ActivityLogService get _activityLogService => ref.read(activityLogServiceProvider);
-  
-  List<ActivityLog> _filteredLogs = [];
-  List<ActivityLog> _allLogs = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLogs();
-    _searchController.addListener(_onSearchChanged);
-    // Initial refresh happens in _loadLogs; listeners must be in build
-  }
+  String _searchKeyword = '';
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  void _loadLogs() {
-    setState(() {
-      _allLogs = _activityLogService.getAllActivityLogs();
-      _filteredLogs = _allLogs;
-    });
-    ref.read(logAktivitasControllerProvider.notifier).refresh();
-  }
-
   void _onSearchChanged() {
-    final query = _searchController.text;
     setState(() {
-      _filteredLogs = _activityLogService.searchLogs(query);
+      _searchKeyword = _searchController.text.trim();
     });
   }
 
@@ -64,15 +42,12 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
 
   @override
   Widget build(BuildContext context) {
-    // listen for errors (inside build)
-    ref.listen(logAktivitasControllerProvider, (previous, next) {
-      final error = next.error;
-      if (error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      }
-    });
+    final logsAsync = ref.watch(activityLogsStreamProvider);
+    final statsAction = logsAsync.maybeWhen<VoidCallback?>(
+      data: (logs) => logs.isEmpty ? null : () => _showStatisticsDialog(logs),
+      orElse: () => null,
+    );
+
     final content = Column(
         children: [
           // Search Bar + Filter Button
@@ -94,6 +69,7 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    onChanged: (_) => _onSearchChanged(),
                     decoration: InputDecoration(
                       hintText: 'Cari aktivitas atau pelaku...',
                       hintStyle: const TextStyle(color: Colors.grey),
@@ -103,6 +79,7 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
                               icon: const Icon(Icons.clear, color: Colors.grey),
                               onPressed: () {
                                 _searchController.clear();
+                                _onSearchChanged();
                               },
                             )
                           : null,
@@ -137,12 +114,33 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Total: ${_filteredLogs.length} aktivitas',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                logsAsync.when(
+                  data: (logs) {
+                    final filtered = _filterLogs(logs);
+                    return Text(
+                      'Total: ${filtered.length} aktivitas',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    );
+                  },
+                  loading: () => const Text(
+                    'Memuat aktivitas...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  error: (_, __) => const Text(
+                    'Gagal memuat log',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
                 if (_searchController.text.isNotEmpty)
@@ -160,16 +158,26 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
 
           // Daftar Aktivitas
           Expanded(
-            child: _filteredLogs.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _filteredLogs.length,
-                    itemBuilder: (context, index) {
-                      final log = _filteredLogs[index];
-                      return _buildLogItem(log, index);
-                    },
-                  ),
+            child: logsAsync.when(
+              data: (logs) {
+                final filtered = _filterLogs(logs);
+                if (filtered.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final log = filtered[index];
+                    return _buildLogItem(log, index);
+                  },
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              error: (error, _) => _buildErrorState(error.toString()),
+            ),
           ),
         ],
       );
@@ -195,7 +203,7 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
           ),
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
-            onPressed: _showStatisticsDialog,
+            onPressed: statsAction,
             tooltip: 'Statistik',
           ),
         ],
@@ -454,9 +462,9 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
     );
   }
 
-  void _showStatisticsDialog() {
-    final stats = _activityLogService.getLogStatistics();
-    
+  void _showStatisticsDialog(List<ActivityLog> logs) {
+    final stats = _calculateStats(logs);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -555,6 +563,76 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<ActivityLog> _filterLogs(List<ActivityLog> logs) {
+    final keyword = _searchKeyword.toLowerCase();
+    final filtered = logs.where((log) {
+      if (keyword.isEmpty) return true;
+      return log.deskripsi.toLowerCase().contains(keyword) ||
+          log.aktor.toLowerCase().contains(keyword);
+    }).toList()
+      ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    return filtered;
+  }
+
+  Map<String, dynamic> _calculateStats(List<ActivityLog> logs) {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final actorCount = <String, int>{};
+    int todayCount = 0;
+
+    for (final log in logs) {
+      actorCount[log.aktor] = (actorCount[log.aktor] ?? 0) + 1;
+      if (!log.tanggal.isBefore(startOfDay) && log.tanggal.isBefore(endOfDay)) {
+        todayCount++;
+      }
+    }
+
+    String mostActiveActor = '-';
+    if (actorCount.isNotEmpty) {
+      mostActiveActor = actorCount.entries
+          .reduce((a, b) => a.value >= b.value ? a : b)
+          .key;
+    }
+
+    return {
+      'total': logs.length,
+      'today': todayCount,
+      'uniqueActors': actorCount.keys.length,
+      'mostActiveActor': mostActiveActor,
+    };
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+          const SizedBox(height: 12),
+          Text(
+            'Gagal memuat log',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
             ),
           ),
         ],

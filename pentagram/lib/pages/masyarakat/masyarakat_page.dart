@@ -7,7 +7,6 @@ import 'package:pentagram/pages/masyarakat/tambah_rumah_page.dart';
 import 'package:pentagram/pages/masyarakat/tabs/warga_tab.dart';
 import 'package:pentagram/pages/masyarakat/tabs/keluarga_tab.dart';
 import 'package:pentagram/pages/masyarakat/tabs/rumah_tab.dart';
-import 'package:pentagram/providers/app_providers.dart';
 
 class MasyarakatPage extends ConsumerStatefulWidget {
   const MasyarakatPage({super.key});
@@ -26,13 +25,6 @@ class _MasyarakatPageState extends ConsumerState<MasyarakatPage>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {}); // Refresh FAB when tab changes
-      // Light refresh when switching tabs to simulate data updates.
-      ref.read(masyarakatControllerProvider.notifier).refresh();
-    });
-
-    // Initial provider refresh + error listener.
-    Future.microtask(() async {
-      await ref.read(masyarakatControllerProvider.notifier).refresh();
     });
   }
 
@@ -75,17 +67,6 @@ class _MasyarakatPageState extends ConsumerState<MasyarakatPage>
 
   @override
   Widget build(BuildContext context) {
-  // final screenWidth = MediaQuery.of(context).size.width;
-    // Error listener should be inside build
-    ref.listen(masyarakatControllerProvider, (prev, next) {
-      final error = next.error;
-      if (error != null && error.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Masyarakat error: $error')),
-        );
-      }
-    });
-    
     return DefaultTabController(
       length: 3,
       child: Scaffold(

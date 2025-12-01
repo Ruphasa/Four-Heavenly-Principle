@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/models/transaction.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 
-class AddTransactionForm extends StatefulWidget {
+class AddTransactionForm extends ConsumerStatefulWidget {
   final bool isIncome;
 
   const AddTransactionForm({
@@ -11,13 +13,14 @@ class AddTransactionForm extends StatefulWidget {
   });
 
   @override
-  State<AddTransactionForm> createState() => _AddTransactionFormState();
+  ConsumerState<AddTransactionForm> createState() => _AddTransactionFormState();
 }
 
-class _AddTransactionFormState extends State<AddTransactionForm> {
+class _AddTransactionFormState extends ConsumerState<AddTransactionForm> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -48,13 +51,19 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
     }
   }
 
-  void _saveTransaction() {
+  Future<void> _saveTransaction() async {
     if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lengkapi judul dan jumlah transaksi.')),
+      );
       return;
     }
 
     final amount = int.tryParse(_amountController.text);
     if (amount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jumlah harus berupa angka.')),
+      );
       return;
     }
 
@@ -65,7 +74,21 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
       isIncome: widget.isIncome,
     );
 
-    Navigator.pop(context, transaction);
+    setState(() => _isSaving = true);
+    try {
+      final repo = ref.read(transactionRepositoryProvider);
+      await repo.create(transaction);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan transaksi: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -137,11 +160,22 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
               ),
-              onPressed: _saveTransaction,
-              child: const Text(
-                'Simpan',
-                style: TextStyle(color: AppColors.textOnPrimary),
-              ),
+              onPressed: _isSaving ? null : _saveTransaction,
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.textOnPrimary,
+                        ),
+                      ),
+                    )
+                  : const Text(
+                      'Simpan',
+                      style: TextStyle(color: AppColors.textOnPrimary),
+                    ),
             ),
           ),
           const SizedBox(height: 12),

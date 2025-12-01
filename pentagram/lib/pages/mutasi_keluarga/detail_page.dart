@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:pentagram/models/family_mutation.dart';
 import 'package:pentagram/utils/app_colors.dart';
 
 class DetailMutasiPage extends StatelessWidget {
-  final Map<String, String> data;
+  final FamilyMutation mutation;
 
-  const DetailMutasiPage({super.key, required this.data});
+  const DetailMutasiPage({super.key, required this.mutation});
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +26,12 @@ class DetailMutasiPage extends StatelessWidget {
             _buildSectionHeader('Informasi Mutasi'),
             const SizedBox(height: 12),
             _buildDetailCard([
-              _buildDetailItem(Icons.family_restroom_rounded, 'Keluarga', data['keluarga']),
-              _buildDetailItem(Icons.location_on_rounded, 'Alamat Lama', data['alamatLama']),
-              _buildDetailItem(Icons.home_work_rounded, 'Alamat Baru', data['alamatBaru']),
-              _buildDetailItem(Icons.calendar_today_rounded, 'Tanggal Mutasi', data['tanggal']),
-              _buildDetailItem(Icons.swap_horiz_rounded, 'Jenis Mutasi', data['jenis']),
-              _buildDetailItem(Icons.info_outline_rounded, 'Alasan', data['alasan']),
+              _buildDetailItem(Icons.family_restroom_rounded, 'Keluarga', mutation.family),
+              _buildDetailItem(Icons.location_on_rounded, 'Alamat Lama', mutation.oldAddress),
+              _buildDetailItem(Icons.home_work_rounded, 'Alamat Baru', mutation.newAddress),
+              _buildDetailItem(Icons.calendar_today_rounded, 'Tanggal Mutasi', _formatDate(mutation.date)),
+              _buildDetailItem(Icons.swap_horiz_rounded, 'Jenis Mutasi', mutation.type),
+              _buildDetailItem(Icons.info_outline_rounded, 'Alasan', mutation.reason),
             ]),
             const SizedBox(height: 30),
             Center(
@@ -143,5 +145,9 @@ class DetailMutasiPage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('d MMMM yyyy').format(date);
   }
 }

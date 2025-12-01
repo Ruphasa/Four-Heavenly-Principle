@@ -6,7 +6,6 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pentagram/firebase_options.dart';
-import 'package:pentagram/dev/seed_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

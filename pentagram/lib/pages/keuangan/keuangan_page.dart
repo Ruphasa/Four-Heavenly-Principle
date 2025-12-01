@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pentagram/models/transaction.dart';
-import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/common/common_header.dart';
 import 'package:pentagram/widgets/keuangan/finance_summary_card.dart';
@@ -21,28 +21,6 @@ class KeuanganPage extends ConsumerStatefulWidget {
 class _KeuanganPageState extends ConsumerState<KeuanganPage> {
   bool _showIncome = true;
 
-  final List<Transaction> _incomeList = [
-    Transaction(title: 'Iuran Bulanan', date: DateTime(2025, 10, 21), amount: 2500000, isIncome: true),
-    Transaction(title: 'Donasi Kegiatan', date: DateTime(2025, 10, 20), amount: 1000000, isIncome: true),
-    Transaction(title: 'Sumbangan Warga', date: DateTime(2025, 10, 19), amount: 500000, isIncome: true),
-  ];
-
-  final List<Transaction> _expenseList = [
-    Transaction(title: 'Belanja Kegiatan', date: DateTime(2025, 10, 21), amount: 1200000, isIncome: false),
-    Transaction(title: 'Konsumsi Rapat', date: DateTime(2025, 10, 20), amount: 300000, isIncome: false),
-    Transaction(title: 'Perawatan Fasilitas', date: DateTime(2025, 10, 18), amount: 800000, isIncome: false),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    // Kick off a background refresh so stats/widgets depending on finance
-    // can react when we migrate them to provider-driven data.
-    Future.microtask(() async {
-      await ref.read(keuanganControllerProvider.notifier).refresh();
-    });
-  }
-
   String _formatCurrency(int amount) {
     final formatter = NumberFormat.currency(
       locale: 'id_ID',
@@ -56,32 +34,10 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
     return list.fold(0, (sum, item) => sum + item.amount);
   }
 
-  List<Transaction> get _currentList => _showIncome ? _incomeList : _expenseList;
-
-  void _addTransaction(Transaction transaction) {
-    setState(() {
-      if (transaction.isIncome) {
-        _incomeList.add(transaction);
-      } else {
-        _expenseList.add(transaction);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-  // screen width available if needed for responsive tweaks
-  
-    // Add a simple error listener for controller state (inside build)
-    ref.listen(keuanganControllerProvider, (prev, next) {
-      final error = next.error;
-      if (error != null && error.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Keuangan error: $error')),
-        );
-      }
-    });
-  
+    final transactionsAsync = ref.watch(transactionsStreamProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -98,25 +54,23 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
                       MaterialPageRoute(
                         builder: (context) => const CetakLaporanPage(),
                       ),
-                    ).then((_) async {
-                      // After returning from print, refresh any finance data.
-                      await ref.read(keuanganControllerProvider.notifier).refresh();
-                    });
+                    );
                   },
                   tooltip: 'Cetak Laporan',
                 ),
               ],
             ),
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildTopSummary(),
-                  const SizedBox(height: 24),
-                  _buildFilterToggle(),
-                  const SizedBox(height: 16),
-                  ..._buildTransactionList(),
-                ]),
+            transactionsAsync.when(
+              data: (transactions) => _buildTransactionSliver(transactions),
+              loading: () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text('Gagal memuat transaksi: $error'),
+                ),
               ),
             ),
           ],
@@ -130,13 +84,41 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
     );
   }
 
-  Widget _buildTopSummary() {
+  SliverPadding _buildTransactionSliver(List<Transaction> transactions) {
+    final incomeList = transactions
+        .where((transaction) => transaction.isIncome)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final expenseList = transactions
+        .where((transaction) => !transaction.isIncome)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final visibleList = _showIncome ? incomeList : expenseList;
+
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          _buildTopSummary(incomeList, expenseList),
+          const SizedBox(height: 24),
+          _buildFilterToggle(),
+          const SizedBox(height: 16),
+          ..._buildTransactionList(visibleList),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildTopSummary(
+    List<Transaction> incomeList,
+    List<Transaction> expenseList,
+  ) {
     return Row(
       children: [
         Expanded(
           child: FinanceSummaryCard(
             title: 'Pemasukan',
-            amount: _formatCurrency(_calculateTotal(_incomeList)),
+            amount: _formatCurrency(_calculateTotal(incomeList)),
             icon: Icons.arrow_downward_rounded,
             color: AppColors.success,
           ),
@@ -145,7 +127,7 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
         Expanded(
           child: FinanceSummaryCard(
             title: 'Pengeluaran',
-            amount: _formatCurrency(_calculateTotal(_expenseList)),
+            amount: _formatCurrency(_calculateTotal(expenseList)),
             icon: Icons.arrow_upward_rounded,
             color: AppColors.error,
           ),
@@ -157,21 +139,59 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
   Widget _buildFilterToggle() {
     return FinanceFilterToggle(
       showIncome: _showIncome,
-      onChanged: (value) async {
+      onChanged: (value) {
         setState(() => _showIncome = value);
-        // Nudge controller to refresh when filter changes.
-        await ref.read(keuanganControllerProvider.notifier).refresh();
       },
     );
   }
 
-  List<Widget> _buildTransactionList() {
-    final data = _currentList;
-    // Sort by date descending
-    final sortedData = List<Transaction>.from(data)
-      ..sort((a, b) => b.date.compareTo(a.date));
-    
-    return sortedData
+  List<Widget> _buildTransactionList(List<Transaction> data) {
+    if (data.isEmpty) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(
+                _showIncome
+                    ? Icons.arrow_downward_rounded
+                    : Icons.arrow_upward_rounded,
+                size: 32,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _showIncome
+                    ? 'Belum ada pemasukan'
+                    : 'Belum ada pengeluaran',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Gunakan tombol tambah untuk mencatat transaksi baru.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    return data
         .map((transaction) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: TransactionItemCard(transaction: transaction),
@@ -180,7 +200,7 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
   }
 
   Future<void> _showAddTransactionForm(BuildContext context) async {
-    final transaction = await showModalBottomSheet<Transaction>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -189,10 +209,16 @@ class _KeuanganPageState extends ConsumerState<KeuanganPage> {
       builder: (context) => AddTransactionForm(isIncome: _showIncome),
     );
 
-    if (transaction != null) {
-      _addTransaction(transaction);
-      // After adding a transaction, refresh provider-driven consumers.
-      await ref.read(keuanganControllerProvider.notifier).refresh();
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _showIncome
+                ? 'Pemasukan berhasil disimpan'
+                : 'Pengeluaran berhasil disimpan',
+          ),
+        ),
+      );
     }
   }
 }

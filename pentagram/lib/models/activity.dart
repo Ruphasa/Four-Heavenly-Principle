@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Activity {
+  final String? documentId;
   final int id;
   final String nama;
   final String kategori;
@@ -10,6 +13,7 @@ class Activity {
   final int peserta;
 
   Activity({
+    this.documentId,
     required this.id,
     required this.nama,
     required this.kategori,
@@ -23,16 +27,35 @@ class Activity {
 
   // Factory constructor to create Activity from JSON/Map
   factory Activity.fromMap(Map<String, dynamic> map) {
+    final rawDate = map['tanggal'];
+    late final DateTime parsedDate;
+    if (rawDate is Timestamp) {
+      parsedDate = rawDate.toDate();
+    } else if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    } else if (rawDate is String) {
+      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+    } else {
+      parsedDate = DateTime.now();
+    }
+
+    final rawId = map['id'] ?? map['activityId'] ?? 0;
+    final intId = rawId is num
+        ? rawId.toInt()
+        : int.tryParse(rawId.toString()) ?? 0;
+
     return Activity(
-      id: map['id'] as int,
-      nama: map['nama'] as String,
-      kategori: map['kategori'] as String,
-      penanggungJawab: map['penanggung_jawab'] as String,
-      tanggal: DateTime.parse(map['tanggal'] as String),
-      waktu: map['waktu'] as String,
-      deskripsi: map['deskripsi'] as String,
-      lokasi: map['lokasi'] as String,
-      peserta: map['peserta'] as int,
+      documentId: map['_docId'] as String?,
+      id: intId,
+      nama: (map['nama'] ?? map['title'] ?? '-') as String,
+      kategori: (map['kategori'] ?? map['category'] ?? '-') as String,
+      penanggungJawab:
+          (map['penanggung_jawab'] ?? map['penanggungJawab'] ?? '-') as String,
+      tanggal: parsedDate,
+      waktu: (map['waktu'] ?? '-') as String,
+      deskripsi: (map['deskripsi'] ?? map['description'] ?? '-') as String,
+      lokasi: (map['lokasi'] ?? map['location'] ?? '-') as String,
+      peserta: ((map['peserta'] ?? map['participants'] ?? 0) as num).toInt(),
     );
   }
 
@@ -43,7 +66,7 @@ class Activity {
       'nama': nama,
       'kategori': kategori,
       'penanggung_jawab': penanggungJawab,
-      'tanggal': tanggal.toIso8601String(),
+      'tanggal': Timestamp.fromDate(tanggal),
       'waktu': waktu,
       'deskripsi': deskripsi,
       'lokasi': lokasi,
@@ -53,6 +76,7 @@ class Activity {
 
   // Copy with method for immutability
   Activity copyWith({
+    String? documentId,
     int? id,
     String? nama,
     String? kategori,
@@ -64,6 +88,7 @@ class Activity {
     int? peserta,
   }) {
     return Activity(
+      documentId: documentId ?? this.documentId,
       id: id ?? this.id,
       nama: nama ?? this.nama,
       kategori: kategori ?? this.kategori,

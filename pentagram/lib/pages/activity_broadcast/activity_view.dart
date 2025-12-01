@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/models/activity.dart';
-import 'package:pentagram/services/activity_service.dart';
 import 'package:pentagram/pages/activity_broadcast/components/activity_card.dart';
 import 'package:pentagram/pages/activity_broadcast/components/activity_tab_bar.dart';
 import 'package:pentagram/pages/activity_broadcast/components/no_activities.dart';
@@ -10,21 +10,19 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/sliver_app_bar_delegate.dart';
 import 'package:pentagram/widgets/activity/activity_filter_dialog.dart';
 import 'package:pentagram/widgets/activity/category_activities_dialog.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class ActivityView extends StatefulWidget {
+class ActivityView extends ConsumerStatefulWidget {
   const ActivityView({super.key});
 
   @override
-  State<ActivityView> createState() => _ActivityViewState();
+  ConsumerState<ActivityView> createState() => _ActivityViewState();
 }
 
-class _ActivityViewState extends State<ActivityView>
+class _ActivityViewState extends ConsumerState<ActivityView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ActivityService _activityService = ActivityService();
   final ScrollController _scrollController = ScrollController();
-  
-  List<Activity> _filteredActivities = [];
   bool _isHeaderVisible = true;
 
   @override
@@ -32,12 +30,9 @@ class _ActivityViewState extends State<ActivityView>
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 1);
     _tabController.addListener(() {
-      setState(() {
-        _filteredActivities = _getFilteredActivities();
-      });
+      setState(() {});
     });
     _scrollController.addListener(_onScroll);
-    _loadActivities();
   }
 
   @override
@@ -60,32 +55,12 @@ class _ActivityViewState extends State<ActivityView>
     }
   }
 
-  /// Load activities from service
-  void _loadActivities() {
-    setState(() {
-      _filteredActivities = _getFilteredActivities();
-    });
-  }
-
-  /// Get filtered activities based on selected tab
-  List<Activity> _getFilteredActivities() {
-    switch (_tabController.index) {
-      case 0: // Selesai (Past)
-        return _activityService.getPastActivities();
-      case 1: // Hari Ini (Today)
-        return _activityService.getTodayActivities();
-      case 2: // Mendatang (Upcoming)
-        return _activityService.getUpcomingActivities();
-      default:
-        return _activityService.getAllActivities();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isCompact = screenWidth < 400;
-    final totalActivities = _activityService.getTotalActivitiesCount();
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
+    final activities = activitiesAsync.asData?.value ?? const <Activity>[];
+    final filteredActivities = _getFilteredActivities(activities);
+    final totalActivities = activities.length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -102,7 +77,7 @@ class _ActivityViewState extends State<ActivityView>
               flexibleSpace: FlexibleSpaceBar(
                 background: ActivityHeader(
                   totalActivities: totalActivities,
-                  onFilterTap: _showFilterDialog,
+                  onFilterTap: () => _showFilterDialog(activities),
                 ),
               ),
             ),
@@ -146,7 +121,7 @@ class _ActivityViewState extends State<ActivityView>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_filteredActivities.length}',
+                        '${filteredActivities.length}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -159,27 +134,42 @@ class _ActivityViewState extends State<ActivityView>
               ),
             ),
 
-            // Activity List
-            _filteredActivities.isEmpty
-                ? const SliverFillRemaining(
+            activitiesAsync.when(
+              data: (data) {
+                final currentFiltered = _getFilteredActivities(data);
+                if (currentFiltered.isEmpty) {
+                  return const SliverFillRemaining(
                     hasScrollBody: false,
                     child: NoActivities(),
-                  )
-                : SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final activity = _filteredActivities[index];
-                          return ActivityCard(
-                            activity: activity,
-                            number: index + 1,
-                          );
-                        },
-                        childCount: _filteredActivities.length,
-                      ),
+                  );
+                }
+                return SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final activity = currentFiltered[index];
+                        return ActivityCard(
+                          activity: activity,
+                          number: index + 1,
+                        );
+                      },
+                      childCount: currentFiltered.length,
                     ),
                   ),
+                );
+              },
+              loading: () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text('Gagal memuat kegiatan: $e'),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -197,21 +187,81 @@ class _ActivityViewState extends State<ActivityView>
   }
 
   /// Show filter dialog
-  void _showFilterDialog() {
+  void _showFilterDialog(List<Activity> activities) {
+    if (activities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Belum ada data kegiatan untuk difilter.')),
+      );
+      return;
+    }
+
+    final categories = _buildCategorySummary(activities);
     ActivityFilterDialog.show(
       context,
-      activityService: _activityService,
-      onCategorySelected: _showCategoryActivities,
+      categories: categories,
+      onCategorySelected: (category) =>
+          _showCategoryActivities(category, activities),
     );
   }
 
   /// Show activities by category
-  void _showCategoryActivities(String category) {
-    final categoryActivities = _activityService.getActivitiesByCategory(category);
+  void _showCategoryActivities(String category, List<Activity> activities) {
+    final categoryActivities = activities
+        .where((activity) => activity.kategori == category)
+        .toList()
+      ..sort((a, b) => a.tanggal.compareTo(b.tanggal));
     CategoryActivitiesDialog.show(
       context,
       category: category,
       activities: categoryActivities,
     );
+  }
+
+  List<Activity> _getFilteredActivities(List<Activity> activities) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayEnd = today.add(const Duration(days: 1));
+
+    List<Activity> result;
+    switch (_tabController.index) {
+      case 0:
+        result = activities
+            .where((activity) => activity.tanggal.isBefore(today))
+            .toList()
+          ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+        break;
+      case 1:
+        result = activities
+            .where((activity) =>
+                !activity.tanggal.isBefore(today) &&
+                activity.tanggal.isBefore(todayEnd))
+            .toList()
+          ..sort((a, b) => a.tanggal.compareTo(b.tanggal));
+        break;
+      case 2:
+        result = activities
+            .where((activity) => !activity.tanggal.isBefore(todayEnd))
+            .toList()
+          ..sort((a, b) => a.tanggal.compareTo(b.tanggal));
+        break;
+      default:
+        result = List<Activity>.from(activities)
+          ..sort((a, b) => a.tanggal.compareTo(b.tanggal));
+    }
+    return result;
+  }
+
+  List<ActivityCategorySummary> _buildCategorySummary(
+    List<Activity> activities,
+  ) {
+    final map = <String, int>{};
+    for (final activity in activities) {
+      map[activity.kategori] = (map[activity.kategori] ?? 0) + 1;
+    }
+    final items = map.entries
+        .map((entry) => ActivityCategorySummary(entry.key, entry.value))
+        .toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+    return items;
   }
 }
