@@ -99,7 +99,6 @@ class CameraPreviewScreen extends StatelessWidget {
                           color: AppColors.textPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          
                         ),
                       ),
                     ],
@@ -111,11 +110,11 @@ class CameraPreviewScreen extends StatelessWidget {
           ),
         ),
 
-        // Capture Button
+        // Capture Button - Positioned di kanan untuk landscape ergonomics
         Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
+          right: 40,
+          top: 0,
+          bottom: 0,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -123,8 +122,8 @@ class CameraPreviewScreen extends StatelessWidget {
                 GestureDetector(
                   onTap: isCapturing ? null : onCapture,
                   child: Container(
-                    width: 80,
-                    height: 80,
+                    width: 70,
+                    height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -138,7 +137,7 @@ class CameraPreviewScreen extends StatelessWidget {
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.4),
+                          color: AppColors.primary.withOpacity(0.5),
                           blurRadius: 20,
                           offset: const Offset(0, 4),
                         ),
@@ -154,33 +153,33 @@ class CameraPreviewScreen extends StatelessWidget {
                         : const Icon(
                             Icons.camera_alt,
                             color: Colors.white,
-                            size: 36,
+                            size: 32,
                           ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: const Text(
-                    'Tekan untuk ambil foto',
+                    'Ambil',
                     style: TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -203,29 +202,117 @@ class _CameraOverlay extends StatelessWidget {
     final frameHeight = size.height * 0.7;
     final frameWidth = frameHeight * 1.59; // KTP ratio landscape (1.59:1)
 
-    return Stack(
-      children: [
-        // Dark overlay
-        Container(color: Colors.black.withValues(alpha: 0.5)),
-        // Transparent frame
-        Center(
-          child: Container(
-            width: frameWidth,
-            height: frameHeight,
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.primaryLight, width: 3),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                  blurRadius: 15,
-                  spreadRadius: 3,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return CustomPaint(
+      size: size,
+      painter: _FrameOverlayPainter(
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      ),
     );
   }
+}
+
+class _FrameOverlayPainter extends CustomPainter {
+  final double frameWidth;
+  final double frameHeight;
+
+  _FrameOverlayPainter({required this.frameWidth, required this.frameHeight});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Hitung posisi frame di center
+    final frameLeft = (size.width - frameWidth) / 2;
+    final frameTop = (size.height - frameHeight) / 2;
+    final frameRect = Rect.fromLTWH(
+      frameLeft,
+      frameTop,
+      frameWidth,
+      frameHeight,
+    );
+
+    // Paint untuk overlay gelap
+    final overlayPaint = Paint()
+      ..color = Colors.black.withOpacity(0.6)
+      ..style = PaintingStyle.fill;
+
+    // Paint untuk frame border (putih tipis)
+    final borderPaint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    // Draw overlay dengan hole di tengah
+    final path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(frameRect, const Radius.circular(16)))
+      ..fillType = PathFillType.evenOdd;
+
+    canvas.drawPath(path, overlayPaint);
+
+    // Draw frame border
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frameRect, const Radius.circular(16)),
+      borderPaint,
+    );
+
+    // Draw corner indicators untuk guide
+    final cornerPaint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    const cornerLength = 30.0;
+
+    // Top-left corner
+    canvas.drawLine(
+      Offset(frameLeft, frameTop + cornerLength),
+      Offset(frameLeft, frameTop),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(frameLeft, frameTop),
+      Offset(frameLeft + cornerLength, frameTop),
+      cornerPaint,
+    );
+
+    // Top-right corner
+    canvas.drawLine(
+      Offset(frameLeft + frameWidth - cornerLength, frameTop),
+      Offset(frameLeft + frameWidth, frameTop),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(frameLeft + frameWidth, frameTop),
+      Offset(frameLeft + frameWidth, frameTop + cornerLength),
+      cornerPaint,
+    );
+
+    // Bottom-left corner
+    canvas.drawLine(
+      Offset(frameLeft, frameTop + frameHeight - cornerLength),
+      Offset(frameLeft, frameTop + frameHeight),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(frameLeft, frameTop + frameHeight),
+      Offset(frameLeft + cornerLength, frameTop + frameHeight),
+      cornerPaint,
+    );
+
+    // Bottom-right corner
+    canvas.drawLine(
+      Offset(frameLeft + frameWidth - cornerLength, frameTop + frameHeight),
+      Offset(frameLeft + frameWidth, frameTop + frameHeight),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      Offset(frameLeft + frameWidth, frameTop + frameHeight - cornerLength),
+      Offset(frameLeft + frameWidth, frameTop + frameHeight),
+      cornerPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
