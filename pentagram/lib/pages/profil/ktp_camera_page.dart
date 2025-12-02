@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
+import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/profil/camera/instruction_screen.dart';
 import 'package:pentagram/widgets/profil/camera/camera_preview_screen.dart';
 import 'package:pentagram/widgets/profil/camera/image_preview_screen.dart';
@@ -22,12 +23,13 @@ class _KtpCameraPageState extends State<KtpCameraPage>
   bool _isInitialized = false;
   bool _isCapturing = false;
   bool _showInstructionScreen = true;
+  bool _isLoadingCamera = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeCamera();
+    // Kamera akan di-initialize setelah loading screen ditampilkan
   }
 
   @override
@@ -220,20 +222,134 @@ class _KtpCameraPageState extends State<KtpCameraPage>
     });
   }
 
-  void _startCamera() {
-    // Set landscape mode saat kamera preview dibuka
-    _setLandscapeMode();
+  void _startCamera() async {
+    // Step 1: Dispose instruction screen dulu
     setState(() {
       _showInstructionScreen = false;
     });
+
+    // Tunggu frame selesai untuk memastikan instruction screen sudah dispose
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Step 2: Rotate device ke landscape
+    _setLandscapeMode();
+
+    // Tunggu rotation selesai
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Step 3: Tampilkan loading animation setelah rotate
+    if (mounted) {
+      setState(() {
+        _isLoadingCamera = true;
+      });
+    }
+
+    // Tunggu sebentar agar loading screen terlihat
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // Step 4: Initialize camera SETELAH loading screen tampil
+    if (mounted) {
+      await _initializeCamera();
+    }
+
+    // Step 5: Hilangkan loading dan tampilkan camera
+    if (mounted) {
+      setState(() {
+        _isLoadingCamera = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Tampilkan instruction screen
     if (_showInstructionScreen) {
       return InstructionScreen(onStart: _startCamera);
     }
 
+    // Tampilkan loading setelah dispose instruction dan rotate
+    if (_isLoadingCamera) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Membuka kamera...',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Mohon tunggu sebentar',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Preview hasil foto
     if (_capturedImage != null) {
       return ImagePreviewScreen(
         image: _capturedImage!,
@@ -242,13 +358,73 @@ class _KtpCameraPageState extends State<KtpCameraPage>
       );
     }
 
+    // Loading saat initialize camera pertama kali
     if (!_isInitialized || _cameraController == null) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.settings, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Menginisialisasi kamera...',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
+    // Tampilkan camera preview
     return CameraPreviewScreen(
       cameraController: _cameraController!,
       onCapture: _capturePhoto,
