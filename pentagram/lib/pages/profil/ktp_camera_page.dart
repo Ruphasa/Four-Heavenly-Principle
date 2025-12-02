@@ -129,33 +129,70 @@ class _KtpCameraPageState extends State<KtpCameraPage>
 
       if (originalImage == null) return null;
 
-      // Dapatkan ukuran screen dan frame
-      final size = screenSize;
-      final frameHeight = size.height * 0.7;
-      final frameWidth = frameHeight * 1.59; // KTP ratio landscape
+      debugPrint('=== Crop Debug ===');
+      debugPrint('Original image: ${originalImage.width}x${originalImage.height}');
+      debugPrint('Screen size: ${screenSize.width}x${screenSize.height}');
 
-      // Hitung posisi crop berdasarkan center screen
       final imageWidth = originalImage.width;
       final imageHeight = originalImage.height;
 
-      // Scale factor untuk mapping screen coordinate ke image coordinate
-      final scaleX = imageWidth / size.width;
-      final scaleY = imageHeight / size.height;
+      // KTP aspect ratio = 1.59:1 (landscape)
+      // Frame overlay menggunakan 70% dari screen height dalam landscape
+      // Kita perlu crop dengan proporsi yang sama dari foto
+      
+      // Hitung frame berdasarkan lebar foto (karena KTP landscape)
+      // Gunakan 55% dari lebar foto untuk lebih presisi
+      final frameWidth = (imageWidth * 0.55).toInt();
+      final frameHeight = (frameWidth / 1.59).toInt(); // Maintain KTP ratio
 
-      // Hitung posisi frame di image (center)
-      final cropWidth = (frameWidth * scaleX).toInt();
-      final cropHeight = (frameHeight * scaleY).toInt();
-      final cropX = ((imageWidth - cropWidth) / 2).toInt();
-      final cropY = ((imageHeight - cropHeight) / 2).toInt();
+      debugPrint('Frame size: ${frameWidth}x$frameHeight (ratio: ${(frameWidth/frameHeight).toStringAsFixed(2)})');
+
+      // Crop dari center
+      final cropX = ((imageWidth - frameWidth) / 2).toInt();
+      final cropY = ((imageHeight - frameHeight) / 2).toInt();
+
+      debugPrint('Crop position: x=$cropX, y=$cropY');
+      debugPrint('Crop size: ${frameWidth}x$frameHeight');
+
+      // Validasi crop coordinates
+      if (cropX < 0 || cropY < 0 || 
+          cropX + frameWidth > imageWidth || 
+          cropY + frameHeight > imageHeight) {
+        debugPrint('Invalid crop coordinates, adjusting...');
+        // Fallback: gunakan maksimal crop yang mungkin
+        final maxWidth = imageWidth;
+        final maxHeight = (maxWidth / 1.59).toInt();
+        
+        if (maxHeight <= imageHeight) {
+          final adjustedCropY = ((imageHeight - maxHeight) / 2).toInt();
+          final croppedImage = img.copyCrop(
+            originalImage,
+            x: 0,
+            y: adjustedCropY,
+            width: maxWidth,
+            height: maxHeight,
+          );
+          
+          final croppedPath = imagePath.replaceAll('.jpg', '_cropped.jpg');
+          final croppedFile = File(croppedPath);
+          await croppedFile.writeAsBytes(img.encodeJpg(croppedImage, quality: 95));
+          return croppedFile;
+        }
+        
+        return File(imagePath);
+      }
 
       // Crop image
       final croppedImage = img.copyCrop(
         originalImage,
         x: cropX,
         y: cropY,
-        width: cropWidth,
-        height: cropHeight,
+        width: frameWidth,
+        height: frameHeight,
       );
+
+      debugPrint('Cropped image: ${croppedImage.width}x${croppedImage.height}');
+      debugPrint('==================');
 
       // Simpan cropped image
       final croppedPath = imagePath.replaceAll('.jpg', '_cropped.jpg');

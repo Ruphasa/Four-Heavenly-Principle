@@ -28,12 +28,30 @@ class KtpFraudDetectionService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
+        // Debug: Print response dari API
+        print('=== API Response ===');
+        print('Raw response: ${response.body}');
+        print('Label: ${data['label']}');
+        print('p_valid: ${data['p_valid']}');
+        print('p_fraud: ${data['p_fraud']}');
+        print('threshold: ${data['threshold']}');
+        print('==================');
+
+        final pValid = (data['p_valid'] as num).toDouble();
+        final threshold = (data['threshold'] as num).toDouble();
+        
+        // Validasi berdasarkan probabilitas, bukan hanya label dari API
+        // Karena kadang API memberikan label yang tidak konsisten
+        final isActuallyValid = pValid >= threshold;
+        
+        print('Calculated isValid: $isActuallyValid (pValid: $pValid >= threshold: $threshold)');
+
         return KtpFraudResult(
           label: data['label'] as String,
-          pValid: (data['p_valid'] as num).toDouble(),
+          pValid: pValid,
           pFraud: (data['p_fraud'] as num).toDouble(),
-          threshold: (data['threshold'] as num).toDouble(),
-          isValid: data['label'] == 'VALID',
+          threshold: threshold,
+          isValid: isActuallyValid, // Gunakan validasi manual
         );
       } else {
         throw KtpFraudDetectionException(
