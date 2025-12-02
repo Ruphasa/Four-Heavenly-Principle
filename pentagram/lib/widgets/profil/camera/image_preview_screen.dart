@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/services/ktp_fraud_detection_service.dart';
 
-class ImagePreviewScreen extends StatelessWidget {
+class ImagePreviewScreen extends StatefulWidget {
   final File image;
   final VoidCallback onConfirm;
   final VoidCallback onRetake;
@@ -13,6 +14,193 @@ class ImagePreviewScreen extends StatelessWidget {
     required this.onConfirm,
     required this.onRetake,
   });
+
+  @override
+  State<ImagePreviewScreen> createState() => _ImagePreviewScreenState();
+}
+
+class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
+  final KtpFraudDetectionService _fraudService = KtpFraudDetectionService();
+  bool _isValidating = false;
+  KtpFraudResult? _fraudResult;
+
+  Future<void> _validateAndConfirm() async {
+    setState(() {
+      _isValidating = true;
+    });
+
+    try {
+      // Panggil API fraud detection
+      final result = await _fraudService.detectFraud(widget.image);
+
+      setState(() {
+        _fraudResult = result;
+        _isValidating = false;
+      });
+
+      if (!mounted) return;
+
+      if (result.isValid) {
+        // Jika VALID, tampilkan pesan sukses dan lanjutkan
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'KTP Valid!',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Tingkat kepercayaan: ${result.validityPercentage}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // Lanjutkan ke confirm
+        widget.onConfirm();
+      } else {
+        // Jika FRAUD, tampilkan dialog error
+        _showFraudDialog(result);
+      }
+    } on KtpFraudDetectionException catch (e) {
+      setState(() {
+        _isValidating = false;
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error validasi: ${e.message}'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  void _showFraudDialog(KtpFraudResult result) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 28),
+            const SizedBox(width: 12),
+            const Text(
+              'KTP Tidak Valid',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Foto KTP yang Anda ambil terdeteksi sebagai fraud atau tidak memenuhi standar validasi.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tingkat Fraud: ${result.fraudPercentage}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tingkat Valid: ${result.validityPercentage}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Silakan ambil foto ulang dengan memastikan:',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            _buildTip('KTP asli, bukan fotokopi'),
+            _buildTip('Pencahayaan yang cukup'),
+            _buildTip('Tidak ada pantulan atau blur'),
+            _buildTip('KTP tidak tertutup atau terpotong'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Close preview, kembali ke halaman sebelumnya
+            },
+            child: const Text(
+              'Batalkan',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              widget.onRetake(); // Foto ulang
+            },
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text('Foto Ulang'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTip(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontSize: 13)),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +246,7 @@ class ImagePreviewScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.file(image, fit: BoxFit.contain),
+                    child: Image.file(widget.image, fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -109,7 +297,7 @@ class ImagePreviewScreen extends StatelessWidget {
                     child: SizedBox(
                       height: 56,
                       child: OutlinedButton.icon(
-                        onPressed: onRetake,
+                        onPressed: _isValidating ? null : widget.onRetake,
                         icon: const Icon(Icons.refresh, size: 20),
                         label: const Text(
                           'Foto Ulang',
@@ -126,16 +314,27 @@ class ImagePreviewScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Confirm Button
+                  // Confirm Button - dengan validasi fraud detection
                   Expanded(
                     child: SizedBox(
                       height: 56,
                       child: ElevatedButton.icon(
-                        onPressed: onConfirm,
-                        icon: const Icon(Icons.check_circle, size: 20),
-                        label: const Text(
-                          'Gunakan Foto',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        onPressed: _isValidating ? null : _validateAndConfirm,
+                        icon: _isValidating
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.check_circle, size: 20),
+                        label: Text(
+                          _isValidating ? 'Memvalidasi...' : 'Gunakan Foto',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,

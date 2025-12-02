@@ -9,6 +9,40 @@ import 'package:pentagram/widgets/profil/permission_dialog.dart';
 import 'package:pentagram/widgets/profil/image_source_bottom_sheet.dart';
 import 'package:pentagram/widgets/profil/delete_ktp_dialog.dart';
 import 'package:pentagram/widgets/profil/ktp_image_preview.dart';
+import 'package:pentagram/services/ktp_fraud_detection_service.dart';
+
+// Provider untuk status validasi KTP - bisa diakses dari edit_profil_page
+final ktpValidationProvider = StateProvider<KtpValidationState>((ref) {
+  return KtpValidationState();
+});
+
+class KtpValidationState {
+  final File? ktpImage;
+  final bool isValid;
+  final bool isValidated;
+  final KtpFraudResult? fraudResult;
+
+  KtpValidationState({
+    this.ktpImage,
+    this.isValid = false,
+    this.isValidated = false,
+    this.fraudResult,
+  });
+
+  KtpValidationState copyWith({
+    File? ktpImage,
+    bool? isValid,
+    bool? isValidated,
+    KtpFraudResult? fraudResult,
+  }) {
+    return KtpValidationState(
+      ktpImage: ktpImage ?? this.ktpImage,
+      isValid: isValid ?? this.isValid,
+      isValidated: isValidated ?? this.isValidated,
+      fraudResult: fraudResult ?? this.fraudResult,
+    );
+  }
+}
 
 class KtpVerificationSection extends ConsumerStatefulWidget {
   const KtpVerificationSection({super.key});
@@ -20,9 +54,9 @@ class KtpVerificationSection extends ConsumerStatefulWidget {
 
 class _KtpVerificationSectionState
     extends ConsumerState<KtpVerificationSection> {
-  File? _ktpImage;
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
+  final KtpFraudDetectionService _fraudService = KtpFraudDetectionService();
 
   Future<void> _requestCameraPermission() async {
     final status = await Permission.camera.request();
@@ -75,19 +109,8 @@ class _KtpVerificationSectionState
         );
 
         if (capturedImage != null) {
-          setState(() {
-            _ktpImage = capturedImage;
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Foto KTP berhasil diambil!'),
-                backgroundColor: AppColors.success,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
+          // Validasi fraud detection setelah foto diambil dari kamera
+          await _validateKtpImage(capturedImage);
         }
       }
     } catch (e) {
@@ -120,19 +143,8 @@ class _KtpVerificationSectionState
       );
 
       if (image != null) {
-        setState(() {
-          _ktpImage = File(image.path);
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Foto KTP berhasil dipilih!'),
-              backgroundColor: AppColors.success,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+        // Validasi fraud detection setelah foto dipilih dari galeri
+        await _validateKtpImage(File(image.path));
       }
     } catch (e) {
       if (mounted) {
@@ -148,6 +160,213 @@ class _KtpVerificationSectionState
         _isLoading = false;
       });
     }
+  }
+
+  /// Validasi KTP dengan fraud detection API
+  Future<void> _validateKtpImage(File imageFile) async {
+    // Tampilkan loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(
+                  'Memvalidasi KTP...',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Mohon tunggu sebentar',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Panggil API fraud detection
+      final result = await _fraudService.detectFraud(imageFile);
+
+      if (!mounted) return;
+
+      // Tutup loading dialog
+      Navigator.pop(context);
+
+      if (result.isValid) {
+        // KTP VALID - simpan ke provider
+        ref.read(ktpValidationProvider.notifier).state =
+            KtpValidationState(
+          ktpImage: imageFile,
+          isValid: true,
+          isValidated: true,
+          fraudResult: result,
+        );
+
+        // Tampilkan pesan sukses
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'KTP Valid!',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Tingkat kepercayaan: ${result.validityPercentage}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // KTP FRAUD - tampilkan dialog error
+        _showFraudDialog(result, imageFile);
+      }
+    } on KtpFraudDetectionException catch (e) {
+      if (!mounted) return;
+
+      // Tutup loading dialog
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error validasi: ${e.message}'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  void _showFraudDialog(KtpFraudResult result, File imageFile) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 28),
+            const SizedBox(width: 12),
+            const Text(
+              'KTP Tidak Valid',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Foto KTP yang Anda pilih terdeteksi sebagai fraud atau tidak memenuhi standar validasi.',
+              style: TextStyle(fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tingkat Fraud: ${result.fraudPercentage}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tingkat Valid: ${result.validityPercentage}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Silakan pilih foto lain dengan memastikan:',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            _buildTip('KTP asli, bukan fotokopi'),
+            _buildTip('Pencahayaan yang cukup'),
+            _buildTip('Tidak ada pantulan atau blur'),
+            _buildTip('KTP tidak tertutup atau terpotong'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+            },
+            child: const Text(
+              'Tutup',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _showImageSourceDialog(); // Pilih foto lagi
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Pilih Ulang'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTip(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontSize: 13)),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showImageSourceDialog() {
@@ -168,9 +387,10 @@ class _KtpVerificationSectionState
       context: context,
       builder: (context) => DeleteKtpDialog(
         onConfirmDelete: () {
-          setState(() {
-            _ktpImage = null;
-          });
+          // Reset validasi KTP
+          ref.read(ktpValidationProvider.notifier).state =
+              KtpValidationState();
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Foto KTP berhasil dihapus'),
@@ -184,6 +404,11 @@ class _KtpVerificationSectionState
 
   @override
   Widget build(BuildContext context) {
+    final ktpValidation = ref.watch(ktpValidationProvider);
+    final ktpImage = ktpValidation.ktpImage;
+    final isValid = ktpValidation.isValid;
+    final isValidated = ktpValidation.isValidated;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -245,12 +470,53 @@ class _KtpVerificationSectionState
           const SizedBox(height: 16),
 
           // KTP Preview or Placeholder
-          KtpImagePreview(ktpImage: _ktpImage),
+          KtpImagePreview(ktpImage: ktpImage),
+
+          // Status validasi
+          if (isValidated && ktpImage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isValid
+                    ? AppColors.success.withOpacity(0.1)
+                    : AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isValid
+                      ? AppColors.success.withOpacity(0.3)
+                      : AppColors.error.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isValid ? Icons.check_circle : Icons.cancel,
+                    color: isValid ? AppColors.success : AppColors.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isValid
+                          ? 'KTP tervalidasi sebagai asli (${ktpValidation.fraudResult?.validityPercentage})'
+                          : 'KTP terdeteksi fraud',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary.withOpacity(0.9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
           // Action Buttons
-          if (_ktpImage == null)
+          if (ktpImage == null)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
