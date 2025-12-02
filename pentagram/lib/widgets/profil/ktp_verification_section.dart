@@ -1,0 +1,357 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/pages/profil/ktp_camera_page.dart';
+import 'package:pentagram/widgets/profil/permission_dialog.dart';
+import 'package:pentagram/widgets/profil/image_source_bottom_sheet.dart';
+import 'package:pentagram/widgets/profil/delete_ktp_dialog.dart';
+import 'package:pentagram/widgets/profil/ktp_image_preview.dart';
+
+class KtpVerificationSection extends ConsumerStatefulWidget {
+  const KtpVerificationSection({super.key});
+
+  @override
+  ConsumerState<KtpVerificationSection> createState() =>
+      _KtpVerificationSectionState();
+}
+
+class _KtpVerificationSectionState
+    extends ConsumerState<KtpVerificationSection> {
+  File? _ktpImage;
+  bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _requestCameraPermission() async {
+    final status = await Permission.camera.request();
+
+    if (status.isDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin kamera diperlukan untuk memindai KTP'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else if (status.isPermanentlyDenied) {
+      if (mounted) {
+        _showPermissionDialog();
+      }
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const PermissionDialog(),
+    );
+  }
+
+  Future<void> _captureKtp() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Check camera permission first
+      final cameraStatus = await Permission.camera.status;
+
+      if (cameraStatus.isDenied || cameraStatus.isPermanentlyDenied) {
+        await _requestCameraPermission();
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Navigate to custom camera page
+      if (mounted) {
+        final File? capturedImage = await Navigator.push<File>(
+          context,
+          MaterialPageRoute(builder: (context) => const KtpCameraPage()),
+        );
+
+        if (capturedImage != null) {
+          setState(() {
+            _ktpImage = capturedImage;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Foto KTP berhasil diambil!'),
+                backgroundColor: AppColors.success,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil foto: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _ktpImage = File(image.path);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto KTP berhasil dipilih!'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memilih foto: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ImageSourceBottomSheet(
+        onCameraPressed: _captureKtp,
+        onGalleryPressed: _pickFromGallery,
+      ),
+    );
+  }
+
+  void _deleteKtpImage() {
+    showDialog(
+      context: context,
+      builder: (context) => DeleteKtpDialog(
+        onConfirmDelete: () {
+          setState(() {
+            _ktpImage = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto KTP berhasil dihapus'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.credit_card,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Verifikasi KTP',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Upload foto KTP untuk verifikasi',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // KTP Preview or Placeholder
+          KtpImagePreview(ktpImage: _ktpImage),
+
+          const SizedBox(height: 16),
+
+          // Action Buttons
+          if (_ktpImage == null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _showImageSourceDialog,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.add_a_photo),
+                label: Text(
+                  _isLoading ? 'Memproses...' : 'Ambil Foto KTP',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showImageSourceDialog,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Ganti Foto'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _deleteKtpImage,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Hapus'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+          const SizedBox(height: 12),
+
+          // Info Text
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Pastikan foto KTP jelas dan tidak buram. Data akan digunakan untuk verifikasi identitas.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary.withOpacity(0.8),
+                      height: 1.5,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

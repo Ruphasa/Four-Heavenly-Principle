@@ -1,0 +1,578 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/pages/login/login_page.dart';
+import 'package:pentagram/pages/profil/edit_profil_page.dart';
+import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/widgets/profil/profile_header.dart';
+import 'package:pentagram/widgets/profil/profile_menu_section.dart';
+import 'package:pentagram/widgets/profil/profile_menu_item.dart';
+
+class ProfilPage extends ConsumerWidget {
+  const ProfilPage({super.key});
+
+  void _handleLogout(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Konfirmasi Logout'),
+          content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Anda telah logout.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(profilControllerProvider, (prev, next) {
+      final error = next.error;
+      if (error != null && error.isNotEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Profil error: $error')));
+      }
+    });
+
+    return Scaffold(
+      backgroundColor: AppColors.backgroundGrey,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // App Bar with Gradient
+            SliverAppBar(
+              expandedHeight: 120,
+              floating: false,
+              pinned: true,
+              backgroundColor: AppColors.primary,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                title: const Text(
+                  'Profil Saya',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.gradientStart,
+                        AppColors.gradientMiddle,
+                        AppColors.gradientEnd,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Profile Header Card
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    ProfileHeader(
+                      name: 'Nyi Roro Lor',
+                      role: 'Ketua RT',
+                      imagePath: 'assets/images/profile.png',
+                      isVerified: true,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditProfilPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text(
+                          'Edit Profil',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Menu Sections
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  ProfileMenuSection(
+                    title: 'PENGATURAN AKUN',
+                    children: [
+                      ProfileMenuItem(
+                        icon: Icons.lock_outline,
+                        title: 'Ubah Password',
+                        subtitle: 'Ganti password akun Anda',
+                        onTap: () {},
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.notifications_outlined,
+                        title: 'Notifikasi',
+                        subtitle: 'Atur preferensi notifikasi',
+                        onTap: () {},
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.language,
+                        title: 'Bahasa',
+                        subtitle: 'Indonesia',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ProfileMenuSection(
+                    title: 'BANTUAN & TENTANG',
+                    children: [
+                      ProfileMenuItem(
+                        icon: Icons.help_outline,
+                        title: 'Pusat Bantuan',
+                        subtitle: 'FAQ dan panduan',
+                        onTap: () {},
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.info_outline,
+                        title: 'Tentang Jawara Pintar',
+                        subtitle: 'Versi 0.1.0',
+                        onTap: () {},
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.star_outline,
+                        title: 'Beri Rating',
+                        subtitle: 'Bantu kami berkembang',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ProfileMenuSection(
+                    title: 'LEGAL',
+                    children: [
+                      ProfileMenuItem(
+                        icon: Icons.article_outlined,
+                        title: 'Ketentuan Layanan',
+                        subtitle: 'Syarat dan ketentuan',
+                        onTap: () {},
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.shield_outlined,
+                        title: 'Kebijakan Privasi',
+                        subtitle: 'Perlindungan data Anda',
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ProfileMenuItem(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      subtitle: 'Keluar dari akun',
+                      iconColor: Colors.red,
+                      onTap: () => _handleLogout(context, ref),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Jawara Pintar',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Copyright © 2025 Pentagram',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+                                    'assets/images/profile.png',
+                                    fit: BoxFit.cover,
+                                    width: 100,
+                                    height: 100,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: AppColors.primary,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.verified,
+                                  color: Colors.green,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Nyi Roro Lor',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'nyirorolor@gmail.com',
+                          style: TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.badge, size: 16, color: Colors.white),
+                              SizedBox(width: 6),
+                              Text(
+                                'Ketua RT',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Edit Profile Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const EditProfilPage(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.edit),
+                            label: const Text(
+                              'Edit Profil',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Menu Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Pengaturan Akun',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    _buildMenuCard(context, [
+                      _buildMenuItem(
+                        icon: Icons.lock_outline,
+                        title: 'Ubah Password',
+                        subtitle: 'Ganti password akun Anda',
+                        onTap: () {},
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildMenuItem(
+                        icon: Icons.notifications_outlined,
+                        title: 'Notifikasi',
+                        subtitle: 'Atur preferensi notifikasi',
+                        onTap: () {},
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildMenuItem(
+                        icon: Icons.language,
+                        title: 'Bahasa',
+                        subtitle: 'Indonesia',
+                        onTap: () {},
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Bantuan & Tentang',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    _buildMenuCard(context, [
+                      _buildMenuItem(
+                        icon: Icons.help_outline,
+                        title: 'Pusat Bantuan',
+                        subtitle: 'FAQ dan panduan',
+                        onTap: () {},
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildMenuItem(
+                        icon: Icons.info_outline,
+                        title: 'Tentang Jawara Pintar',
+                        subtitle: 'Versi 0.1.0',
+                        onTap: () {},
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildMenuItem(
+                        icon: Icons.star_outline,
+                        title: 'Beri Rating',
+                        subtitle: 'Bantu kami berkembang',
+                        onTap: () {},
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Legal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    _buildMenuCard(context, [
+                      _buildMenuItem(
+                        icon: Icons.article_outlined,
+                        title: 'Ketentuan Layanan',
+                        subtitle: 'Syarat dan ketentuan',
+                        onTap: () {},
+                      ),
+                      const Divider(height: 1, indent: 60),
+                      _buildMenuItem(
+                        icon: Icons.shield_outlined,
+                        title: 'Kebijakan Privasi',
+                        subtitle: 'Perlindungan data Anda',
+                        onTap: () {},
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                    _buildMenuCard(context, [
+                      _buildMenuItem(
+                        icon: Icons.logout,
+                        title: 'Logout',
+                        subtitle: 'Keluar dari akun',
+                        iconColor: Colors.red,
+                        titleColor: Colors.red,
+                        onTap: () => _handleLogout(context, ref),
+                      ),
+                    ]),
+                    const SizedBox(height: 32),
+                    // Footer
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Jawara Pintar',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Copyright © 2025 Pentagram',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard(BuildContext context, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? titleColor,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: iconColor ?? AppColors.primary, size: 24),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: titleColor ?? AppColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+      ),
+      trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+    );
+  }
+}

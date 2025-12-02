@@ -23,6 +23,10 @@ dependencies:
   flutter_riverpod: ^2.3.6
   cloud_firestore: ^6.1.0
   firebase_database: ^12.1.0
+  camera: ^0.10.5+9
+  image_picker: ^1.0.7
+  permission_handler: ^11.3.0
+  image: ^4.1.7
 
 dev_dependencies:
   flutter_test:
