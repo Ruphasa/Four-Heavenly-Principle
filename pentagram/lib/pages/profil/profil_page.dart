@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/providers/auth_providers.dart';
 import 'package:pentagram/pages/login/login_page.dart';
 import 'package:pentagram/pages/profil/edit_profil_page.dart';
 import 'package:pentagram/widgets/profil/profile_header.dart';
@@ -11,14 +12,79 @@ import 'package:pentagram/widgets/profil/profile_menu_item.dart';
 class ProfilPage extends ConsumerWidget {
   const ProfilPage({super.key});
 
-  void _handleLogout(BuildContext context, WidgetRef ref) {
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    // Show confirmation dialog
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: AppColors.error),
+            SizedBox(width: 12),
+            Text('Konfirmasi Logout'),
+          ],
+        ),
+        content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    if (!context.mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Logging out...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Perform logout
+    await ref.read(authControllerProvider.notifier).logout();
+
+    if (!context.mounted) return;
+
+    // Close loading dialog
+    Navigator.pop(context);
+
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Anda telah logout.'),
+        backgroundColor: AppColors.success,
         duration: Duration(seconds: 2),
       ),
     );
 
+    // Navigate to login page
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),

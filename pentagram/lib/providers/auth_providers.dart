@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/services/auth_service.dart';
 
 // Service provider for dependency injection
-final authServiceProvider = Provider<AuthService>((ref) => const AuthService());
+final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 class AuthState {
   final bool isLoading;
@@ -66,8 +66,26 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  void logout() {
-    state = const AuthState(isAuthenticated: false);
+  Future<void> logout() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      await _ref.read(authServiceProvider).logout();
+      state = const AuthState(isAuthenticated: false);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Gagal logout: $e',
+      );
+    }
+  }
+
+  /// Check if user is already logged in
+  Future<bool> checkLoginStatus() async {
+    final isLoggedIn = await _ref.read(authServiceProvider).isLoggedIn();
+    if (isLoggedIn) {
+      state = state.copyWith(isAuthenticated: true);
+    }
+    return isLoggedIn;
   }
 }
 
