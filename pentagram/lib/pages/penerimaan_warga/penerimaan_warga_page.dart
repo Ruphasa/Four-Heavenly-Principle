@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/penerimaan_warga.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/widgets/penerimaan/penerimaan_card.dart';
 import 'package:pentagram/widgets/penerimaan/filter_penerimaan_warga.dart';
 import 'package:pentagram/pages/penerimaan_warga/penerimaan_warga_detail.dart';
@@ -19,53 +20,19 @@ class _PenerimaanWargaPageState extends ConsumerState<PenerimaanWargaPage> {
   String selectedStatus = 'Semua';
   String selectedGender = 'Semua';
 
-  final List<PenerimaanWarga> wargaList = [
-    PenerimaanWarga(
-      no: 1,
-      nama: 'Farhan Hidayat',
-      nik: '3201012345678901',
-      email: 'farhan@gmail.com',
-      jenisKelamin: 'Laki-laki',
-      fotoIdentitas: 'assets/images/ktp1.png',
-      statusRegistrasi: 'Pending',
-    ),
-    PenerimaanWarga(
-      no: 2,
-      nama: 'Siti Nurhaliza',
-      nik: '3201012345678902',
-      email: 'siti@gmail.com',
-      jenisKelamin: 'Perempuan',
-      fotoIdentitas: 'assets/images/ktp2.png',
-      statusRegistrasi: 'Diterima',
-    ),
-    PenerimaanWarga(
-      no: 3,
-      nama: 'Andi Wijaya',
-      nik: '3201012345678903',
-      email: 'andi@gmail.com',
-      jenisKelamin: 'Laki-laki',
-      fotoIdentitas: 'assets/images/ktp3.png',
-      statusRegistrasi: 'Ditolak',
-    ),
-    PenerimaanWarga(
-      no: 4,
-      nama: 'Dewi Lestari',
-      nik: '3201012345678904',
-      email: 'dewi@gmail.com',
-      jenisKelamin: 'Perempuan',
-      fotoIdentitas: 'assets/images/ktp4.png',
-      statusRegistrasi: 'Pending',
-    ),
-    PenerimaanWarga(
-      no: 5,
-      nama: 'Ahmad Subarjo',
-      nik: '3201012345678905',
-      email: 'ahmad@gmail.com',
-      jenisKelamin: 'Laki-laki',
-      fotoIdentitas: 'assets/images/ktp5.png',
-      statusRegistrasi: 'Pending',
-    ),
-  ];
+  List<PenerimaanWarga> _applyFilters(List<PenerimaanWarga> list) {
+    final filtered = list.where((w) {
+      final matchesGender =
+          selectedGender == 'Semua' || w.jenisKelamin == selectedGender;
+      final matchesStatus =
+          selectedStatus == 'Semua' || w.statusRegistrasi == selectedStatus;
+      final q = _searchController.text.trim().toLowerCase();
+      final matchesSearch = q.isEmpty || w.nama.toLowerCase().contains(q);
+      return matchesGender && matchesStatus && matchesSearch;
+    }).toList();
+    filtered.sort((a, b) => a.no.compareTo(b.no));
+    return filtered;
+  }
 
   void _showGenderFilter() {
     showDialog(
@@ -101,14 +68,7 @@ class _PenerimaanWargaPageState extends ConsumerState<PenerimaanWargaPage> {
         );
       }
     });
-    final filteredList = wargaList.where((w) {
-      
-      final matchesGender =
-          selectedGender == 'Semua' || w.jenisKelamin == selectedGender;
-      final matchesStatus =
-          selectedStatus == 'Semua' || w.statusRegistrasi == selectedStatus;
-      return matchesGender && matchesStatus;
-    }).toList();
+    final wargaAsync = ref.watch(penerimaanWargaStreamProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -129,16 +89,26 @@ class _PenerimaanWargaPageState extends ConsumerState<PenerimaanWargaPage> {
           _buildSearchBar(),
           _buildStatusFilterChips(),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: filteredList.length,
-              itemBuilder: (context, index) {
-                final warga = filteredList[index];
-                return PenerimaanCard(
-                  warga: warga,
-                  onTap: () => DetailPenerimaanWargaOverlay.show(context, warga),
+            child: wargaAsync.when(
+              data: (list) {
+                final filteredList = _applyFilters(list);
+                if (filteredList.isEmpty) {
+                  return const Center(child: Text('Tidak ada data'));
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    final warga = filteredList[index];
+                    return PenerimaanCard(
+                      warga: warga,
+                      onTap: () => DetailPenerimaanWargaOverlay.show(context, warga),
+                    );
+                  },
                 );
               },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Gagal memuat: $e')),
             ),
           ),
         ],

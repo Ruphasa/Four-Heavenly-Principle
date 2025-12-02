@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
-import 'package:pentagram/services/activity_service.dart';
+import 'package:pentagram/models/activity.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pentagram/providers/app_providers.dart';
 
@@ -13,12 +14,11 @@ class ActivityStatisticsPage extends ConsumerStatefulWidget {
 }
 
 class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage> {
-  ActivityService get _activityService => ref.read(activityServiceProvider);
   String _selectedPeriod = 'Bulan Ini';
 
   @override
   Widget build(BuildContext context) {
-    final stats = _activityService.getActivityStatistics();
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
     
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
@@ -79,7 +79,11 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${stats['totalActivities']} Kegiatan',
+                    activitiesAsync.when(
+                      data: (data) => '${data.length} Kegiatan',
+                      loading: () => 'Memuat…',
+                      error: (_, __) => '0 Kegiatan',
+                    ),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -89,18 +93,10 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        stats['activityChange'] >= 0
-                            ? Icons.trending_up
-                            : Icons.trending_down,
-                        color: stats['activityChange'] >= 0
-                            ? Colors.greenAccent
-                            : Colors.redAccent,
-                        size: 16,
-                      ),
+                      const Icon(Icons.trending_up, color: Colors.greenAccent, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        '${stats['activityChange']}% dari bulan lalu',
+                        'Aktivitas berjalan',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
                           fontSize: 12,
@@ -117,35 +113,42 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
             // Status Cards (Completed, Ongoing, Upcoming)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Selesai',
-                      stats['completed'],
-                      const Color(0xFF66BB6A),
-                      Icons.check_circle_outline,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Berlangsung',
-                      stats['ongoing'],
-                      const Color(0xFF42A5F5),
-                      Icons.play_circle_outline,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatusCard(
-                      'Mendatang',
-                      stats['upcoming'],
-                      const Color(0xFFFFB74D),
-                      Icons.schedule,
-                    ),
-                  ),
-                ],
+              child: activitiesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Text('Gagal memuat: $e'),
+                data: (data) {
+                  final stat = _computeActivityStatistics(data);
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatusCard(
+                          'Selesai',
+                          stat['completed'] as int,
+                          const Color(0xFF66BB6A),
+                          Icons.check_circle_outline,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatusCard(
+                          'Berlangsung',
+                          stat['ongoing'] as int,
+                          const Color(0xFF42A5F5),
+                          Icons.play_circle_outline,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatusCard(
+                          'Mendatang',
+                          stat['upcoming'] as int,
+                          const Color(0xFFFFB74D),
+                          Icons.schedule,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -194,6 +197,31 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
         ),
       ),
     );
+  }
+
+  Map<String, dynamic> _computeActivityStatistics(List<Activity> activities) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int completed = 0;
+    int ongoing = 0;
+    int upcoming = 0;
+
+    for (final a in activities) {
+      final d = DateTime(a.tanggal.year, a.tanggal.month, a.tanggal.day);
+      if (d.isBefore(today)) {
+        completed++;
+      } else if (d.isAtSameMomentAs(today)) {
+        ongoing++;
+      } else {
+        upcoming++;
+      }
+    }
+
+    return {
+      'completed': completed,
+      'ongoing': ongoing,
+      'upcoming': upcoming,
+    };
   }
 
   Widget _buildStatusCard(
@@ -386,8 +414,7 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
   }
 
   Widget _buildActivityByCategory() {
-    final categories = _activityService.getActivityByCategory();
-    
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -412,85 +439,92 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
             ),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 220,
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: PieChart(
-                    PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 45,
-                      sections: categories.map((cat) {
-                        return PieChartSectionData(
-                          value: cat['count'].toDouble(),
-                          title: '${cat['percentage']}%',
-                          color: cat['color'],
-                          radius: 65,
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  flex: 1,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: categories.map((cat) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: cat['color'],
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
+          activitiesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Gagal memuat: $e'),
+            data: (data) {
+              final categories = _computeCategorySummary(data);
+              return SizedBox(
+                height: 220,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 45,
+                          sections: categories.map((cat) {
+                            return PieChartSectionData(
+                              value: (cat['count'] as int).toDouble(),
+                              title: '${cat['percentage']}%',
+                              color: cat['color'] as Color,
+                              radius: 65,
+                              titleStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      cat['category'],
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      '${cat['count']} kegiatan',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: categories.map((cat) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: cat['color'] as Color,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          cat['category'] as String,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          '${cat['count']} kegiatan',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -498,8 +532,7 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
   }
 
   Widget _buildTopContributors() {
-    final contributors = _activityService.getTopContributors();
-    
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -530,11 +563,20 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
             ],
           ),
           const SizedBox(height: 20),
-          ...contributors.asMap().entries.map((entry) {
-            final index = entry.key;
-            final contributor = entry.value;
-            return _buildContributorItem(contributor, index);
-          }),
+          activitiesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Gagal memuat: $e'),
+            data: (data) {
+              final contributors = _computeTopContributors(data);
+              return Column(
+                children: contributors.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final contributor = entry.value;
+                  return _buildContributorItem(contributor, index);
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -637,6 +679,7 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
   }
 
   Widget _buildParticipationStats() {
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -661,36 +704,52 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
             ),
           ),
           const SizedBox(height: 20),
-          _buildParticipationItem(
-            'Total Peserta',
-            '542',
-            'Dari semua kegiatan',
-            Icons.groups,
-            const Color(0xFF42A5F5),
-          ),
-          const SizedBox(height: 12),
-          _buildParticipationItem(
-            'Rata-rata per Kegiatan',
-            '28',
-            'Peserta per kegiatan',
-            Icons.person_outline,
-            const Color(0xFF66BB6A),
-          ),
-          const SizedBox(height: 12),
-          _buildParticipationItem(
-            'Partisipasi Tertinggi',
-            '60',
-            'Vaksinasi Massal',
-            Icons.trending_up,
-            const Color(0xFFFFB74D),
-          ),
-          const SizedBox(height: 12),
-          _buildParticipationItem(
-            'Partisipasi Terendah',
-            '8',
-            'Ronda Malam',
-            Icons.trending_down,
-            const Color(0xFFEF5350),
+          activitiesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Gagal memuat: $e'),
+            data: (data) {
+              final totalParticipants = data.fold<int>(0, (sum, a) => sum + a.peserta);
+              final totalActivities = data.length;
+              final avg = totalActivities > 0 ? (totalParticipants / totalActivities).round() : 0;
+              final maxAct = data.isNotEmpty ? data.reduce((a, b) => a.peserta >= b.peserta ? a : b) : null;
+              final minAct = data.isNotEmpty ? data.reduce((a, b) => a.peserta <= b.peserta ? a : b) : null;
+
+              return Column(
+                children: [
+                  _buildParticipationItem(
+                    'Total Peserta',
+                    '$totalParticipants',
+                    'Dari semua kegiatan',
+                    Icons.groups,
+                    const Color(0xFF42A5F5),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildParticipationItem(
+                    'Rata-rata per Kegiatan',
+                    '$avg',
+                    'Peserta per kegiatan',
+                    Icons.person_outline,
+                    const Color(0xFF66BB6A),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildParticipationItem(
+                    'Partisipasi Tertinggi',
+                    '${maxAct?.peserta ?? 0}',
+                    maxAct?.nama ?? '-',
+                    Icons.trending_up,
+                    const Color(0xFFFFB74D),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildParticipationItem(
+                    'Partisipasi Terendah',
+                    '${minAct?.peserta ?? 0}',
+                    minAct?.nama ?? '-',
+                    Icons.trending_down,
+                    const Color(0xFFEF5350),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -757,8 +816,7 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
   }
 
   Widget _buildCategoryDistribution() {
-    final distribution = _activityService.getActivityByCategory();
-    
+    final activitiesAsync = ref.watch(activitiesStreamProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -783,7 +841,16 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
             ),
           ),
           const SizedBox(height: 20),
-          ...distribution.map((item) => _buildDistributionBar(item)),
+          activitiesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Gagal memuat: $e'),
+            data: (data) {
+              final distribution = _computeCategorySummary(data);
+              return Column(
+                children: distribution.map((item) => _buildDistributionBar(item)).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -831,4 +898,51 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
       ),
     );
   }
+}
+
+List<Map<String, dynamic>> _computeCategorySummary(List<Activity> activities) {
+  if (activities.isEmpty) return [];
+  final Map<String, int> counts = {};
+  for (final a in activities) {
+    counts[a.kategori] = (counts[a.kategori] ?? 0) + 1;
+  }
+  final total = activities.length;
+  final colors = [
+    const Color(0xFF42A5F5),
+    const Color(0xFF66BB6A),
+    const Color(0xFFFFB74D),
+    const Color(0xFFEF5350),
+    const Color(0xFFAB47BC),
+  ];
+  final entries = counts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return entries.asMap().entries.map((entry) {
+    final idx = entry.key;
+    final e = entry.value;
+    final pct = ((e.value / total) * 100).round();
+    return {
+      'category': e.key,
+      'count': e.value,
+      'percentage': pct,
+      'color': colors[idx % colors.length],
+    };
+  }).toList();
+}
+
+List<Map<String, dynamic>> _computeTopContributors(List<Activity> activities) {
+  if (activities.isEmpty) return [];
+  final Map<String, Map<String, int>> agg = {};
+  for (final a in activities) {
+    final name = a.penanggungJawab;
+    agg[name] ??= {'activities': 0, 'participants': 0};
+    agg[name]!['activities'] = (agg[name]!['activities'] ?? 0) + 1;
+    agg[name]!['participants'] = (agg[name]!['participants'] ?? 0) + a.peserta;
+  }
+  final list = agg.entries.map((e) => {
+        'name': e.key,
+        'activities': e.value['activities'] ?? 0,
+        'participants': e.value['participants'] ?? 0,
+      }).toList();
+  list.sort((a, b) => (b['activities'] as int).compareTo(a['activities'] as int));
+  return list.take(5).toList();
 }

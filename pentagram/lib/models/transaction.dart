@@ -6,6 +6,7 @@ class Transaction {
   final DateTime date;
   final int amount;
   final bool isIncome;
+  final String? createdByUserId; // relation to users
 
   Transaction({
     this.documentId,
@@ -13,6 +14,7 @@ class Transaction {
     required this.date,
     required this.amount,
     required this.isIncome,
+    this.createdByUserId,
   });
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
@@ -34,6 +36,7 @@ class Transaction {
       date: parsedDate,
       amount: ((map['amount'] ?? 0) as num).toInt(),
       isIncome: map['isIncome'] as bool? ?? true,
+      createdByUserId: map['createdByUserId'] as String?,
     );
   }
 
@@ -43,6 +46,7 @@ class Transaction {
       'date': Timestamp.fromDate(date),
       'amount': amount,
       'isIncome': isIncome,
+      'createdByUserId': createdByUserId,
     };
   }
 
@@ -52,6 +56,7 @@ class Transaction {
     DateTime? date,
     int? amount,
     bool? isIncome,
+    String? createdByUserId,
   }) {
     return Transaction(
       documentId: documentId ?? this.documentId,
@@ -59,6 +64,7 @@ class Transaction {
       date: date ?? this.date,
       amount: amount ?? this.amount,
       isIncome: isIncome ?? this.isIncome,
+      createdByUserId: createdByUserId ?? this.createdByUserId,
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/models/channel.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/pages/channel_transfer/detail_channel_page.dart';
 import 'package:pentagram/pages/channel_transfer/tambah_channel.dart'; // arah ke file lib/pages/channel_transfer/tambah_channel.dart
@@ -21,26 +23,7 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
     });
   }
 
-  final List<Map<String, String>> channelData = const [
-    {
-      'nama': 'Transfer via BCA',
-      'tipe': 'Bank',
-      'an': 'RT Jawara Karangploso',
-      'thumbnail': 'assets/icons/bank.png',
-    },
-    {
-      'nama': 'Gopay Ketua RT',
-      'tipe': 'E-Wallet',
-      'an': 'Budi Santoso',
-      'thumbnail': 'assets/icons/ewallet.png',
-    },
-    {
-      'nama': 'QRIS Resmi RT 08',
-      'tipe': 'QRIS',
-      'an': 'RW 08 Karangploso',
-      'thumbnail': 'assets/icons/qris.png',
-    },
-  ];
+  
 
   @override
   Widget build(BuildContext context) {
@@ -94,10 +77,13 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
       // === Daftar Channel ===
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: ListView.builder(
-          itemCount: channelData.length,
-          itemBuilder: (context, index) {
-            final data = channelData[index];
+        child: Consumer(builder: (context, ref, _) {
+          final channelsAsync = ref.watch(channelsStreamProvider);
+          return channelsAsync.when(
+            data: (channels) => ListView.builder(
+              itemCount: channels.length,
+              itemBuilder: (context, index) {
+                final ch = channels[index];
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
@@ -124,7 +110,7 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
                   ),
                 ),
                 title: Text(
-                  data['nama']!,
+                  ch.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -136,11 +122,11 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
                   children: [
                     const SizedBox(height: 4),
                     Text(
-                      'Tipe: ${data['tipe']}',
+                      'Tipe: ${ch.type}',
                       style: const TextStyle(fontSize: 13),
                     ),
                     Text(
-                      'A/N: ${data['an']}',
+                      'A/N: ${ch.accountName}',
                       style: const TextStyle(fontSize: 13),
                     ),
                   ],
@@ -150,7 +136,12 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => DetailChannelPage(data: data),
+                        builder: (_) => DetailChannelPage(data: {
+                          'nama': ch.name,
+                          'tipe': ch.type,
+                          'an': ch.accountName,
+                          'thumbnail': ch.thumbnail ?? '',
+                        }),
                       ),
                     );
                   },
@@ -172,8 +163,12 @@ class _DaftarChannelPageState extends ConsumerState<DaftarChannelPage> {
                 ),
               ),
             );
-          },
-        ),
+              },
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Gagal memuat: $e')),
+          );
+        }),
       ),
     );
   }

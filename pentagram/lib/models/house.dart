@@ -5,6 +5,7 @@ class House {
   final String rw;
   final String headName;
   final String status;
+  final String? familyId; // relation to families
 
   const House({
     this.documentId,
@@ -13,6 +14,7 @@ class House {
     required this.rw,
     required this.headName,
     required this.status,
+    this.familyId,
   });
 
   factory House.fromMap(Map<String, dynamic> map) {
@@ -23,6 +25,7 @@ class House {
       rw: (map['rw'] ?? '01') as String,
       headName: (map['headName'] ?? map['kepalaKeluarga'] ?? '-') as String,
       status: (map['status'] ?? 'Dihuni') as String,
+      familyId: map['familyId'] as String?,
     );
   }
 
@@ -33,6 +36,7 @@ class House {
       'rw': rw,
       'headName': headName,
       'status': status,
+      if (familyId != null) 'familyId': familyId,
     };
   }
 }

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/models/activity.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/date_formatter.dart';
 
-class ActivityDetail extends StatelessWidget {
+class ActivityDetail extends ConsumerWidget {
   final Activity activity;
 
   const ActivityDetail({required this.activity, super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -149,7 +151,7 @@ class ActivityDetail extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            _showDeleteDialog(context);
+                            _showDeleteDialog(context, ref);
                           },
                           icon: const Icon(Icons.delete),
                           label: const Text('Hapus'),
@@ -242,7 +244,7 @@ class ActivityDetail extends StatelessWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -257,15 +259,31 @@ class ActivityDetail extends StatelessWidget {
               child: const Text('Batal'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${activity.nama} berhasil dihapus'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                try {
+                  final docId = activity.documentId;
+                  if (docId == null || docId.isEmpty) {
+                    throw 'Data kegiatan tidak memiliki ID dokumen';
+                  }
+                  final repo = ref.read(activityRepositoryProvider);
+                  await repo.delete(docId);
+                  // Pop detail page
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${activity.nama} berhasil dihapus'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Hapus'),

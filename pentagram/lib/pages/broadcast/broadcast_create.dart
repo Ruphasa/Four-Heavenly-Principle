@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
-import 'package:pentagram/services/broadcast_service.dart';
 import 'package:pentagram/models/broadcast_message.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class BroadcastCreatePage extends StatefulWidget {
+class BroadcastCreatePage extends ConsumerStatefulWidget {
   const BroadcastCreatePage({super.key});
 
   @override
-  State<BroadcastCreatePage> createState() => _BroadcastCreatePageState();
+  ConsumerState<BroadcastCreatePage> createState() => _BroadcastCreatePageState();
 }
 
-class _BroadcastCreatePageState extends State<BroadcastCreatePage> {
+class _BroadcastCreatePageState extends ConsumerState<BroadcastCreatePage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final BroadcastService _broadcastService = BroadcastService();
   
   String _selectedCategory = 'Informasi Umum';
   bool _isUrgent = false;
@@ -160,7 +160,7 @@ class _BroadcastCreatePageState extends State<BroadcastCreatePage> {
     );
   }
 
-  void _sendBroadcast() {
+  Future<void> _sendBroadcast() async {
     if (_formKey.currentState!.validate()) {
       final message = BroadcastMessage(
         id: DateTime.now().millisecondsSinceEpoch,
@@ -175,16 +175,26 @@ class _BroadcastCreatePageState extends State<BroadcastCreatePage> {
         recipients: [_selectedRecipient],
       );
 
-      _broadcastService.sendBroadcast(message);
-      
-      Navigator.pop(context, true);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Broadcast berhasil dikirim!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        final repo = ref.read(broadcastRepositoryProvider);
+        await repo.create(message);
+        if (!mounted) return;
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Broadcast berhasil dikirim!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengirim broadcast: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

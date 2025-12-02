@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/broadcast_message.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class BroadcastDetailPage extends StatelessWidget {
+class BroadcastDetailPage extends ConsumerWidget {
   final BroadcastMessage message;
 
   const BroadcastDetailPage({
@@ -11,7 +13,7 @@ class BroadcastDetailPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: CustomScrollView(
@@ -426,7 +428,7 @@ class BroadcastDetailPage extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            _showDeleteConfirmation(context);
+                            _showDeleteConfirmation(context, ref);
                           },
                           icon: const Icon(Icons.delete_outline),
                           label: const Text('Hapus'),
@@ -660,7 +662,7 @@ class BroadcastDetailPage extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -674,15 +676,33 @@ class BroadcastDetailPage extends StatelessWidget {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Broadcast berhasil dihapus!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              try {
+                final id = message.documentId;
+                if (id != null) {
+                  final repo = ref.read(broadcastRepositoryProvider);
+                  await repo.delete(id);
+                }
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Broadcast berhasil dihapus!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus broadcast: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

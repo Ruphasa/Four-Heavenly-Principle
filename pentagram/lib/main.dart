@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentagram/pages/login/login_page.dart';
@@ -8,6 +9,8 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pentagram/firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pentagram/seeders/seeders.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,12 +95,56 @@ class _AuthCheckerState extends ConsumerState<AuthChecker> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final Widget child = authState.isAuthenticated
+        ? const MainPage()
+        : const LoginPage();
 
-    // Tampilkan splash screen sementara cek login status
-    if (authState.isAuthenticated) {
-      return const MainPage();
-    } else {
-      return const LoginPage();
+    if (!kDebugMode) return child;
+
+    // In debug mode, overlay a small floating button to run the seeder
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: _SeedFab(onSeed: _runSeeder),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _runSeeder() async {
+    try {
+      final fs = FirebaseFirestore.instance;
+      final seeder = Seeders(fs);
+      await seeder.runAll(clearBefore: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Seeding completed.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seeding failed: $e')),
+        );
+      }
     }
+  }
+}
+
+class _SeedFab extends StatelessWidget {
+  final Future<void> Function() onSeed;
+  const _SeedFab({required this.onSeed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.small(
+      heroTag: 'seedFab',
+      onPressed: onSeed,
+      tooltip: 'Reseed Firestore (clears and seeds)',
+      child: const Icon(Icons.dataset),
+    );
   }
 }

@@ -8,6 +8,10 @@ import 'package:pentagram/models/family_mutation.dart';
 import 'package:pentagram/models/house.dart';
 import 'package:pentagram/models/pesan_warga.dart';
 import 'package:pentagram/models/transaction.dart';
+import 'package:pentagram/models/broadcast_message.dart';
+import 'package:pentagram/models/penerimaan_warga.dart';
+import 'package:pentagram/models/user.dart';
+import 'package:pentagram/models/channel.dart';
 import 'package:pentagram/repositories/activity_firestore_repository.dart';
 import 'package:pentagram/repositories/activity_log_firestore_repository.dart';
 import 'package:pentagram/repositories/citizen_repository.dart';
@@ -16,6 +20,10 @@ import 'package:pentagram/repositories/family_mutation_repository.dart';
 import 'package:pentagram/repositories/house_repository.dart';
 import 'package:pentagram/repositories/pesan_repository.dart';
 import 'package:pentagram/repositories/transaction_repository.dart';
+import 'package:pentagram/repositories/broadcast_repository.dart';
+import 'package:pentagram/repositories/penerimaan_warga_repository.dart';
+import 'package:pentagram/repositories/user_repository.dart';
+import 'package:pentagram/repositories/channel_repository.dart';
 
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
@@ -41,8 +49,9 @@ final activityRepositoryProvider = Provider<ActivityFirestoreRepository>((ref) {
 final activitiesStreamProvider =
     StreamProvider.autoDispose<List<Activity>>((ref) {
   final repo = ref.watch(activityRepositoryProvider);
+  // Order by a field that exists broadly; fallback to createdAt.
   return repo.streamAll(
-    where: (query) => query.orderBy('tanggal', descending: false),
+    where: (query) => query.orderBy('createdAt', descending: false),
   );
 });
 
@@ -70,8 +79,9 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 final transactionsStreamProvider =
     StreamProvider.autoDispose<List<Transaction>>((ref) {
   final repo = ref.watch(transactionRepositoryProvider);
+  // Many existing docs use createdAt; order by that for broad compatibility.
   return repo.streamAll(
-    where: (query) => query.orderBy('date', descending: true),
+    where: (query) => query.orderBy('createdAt', descending: true),
   );
 });
 
@@ -117,5 +127,61 @@ final familyMutationsStreamProvider =
   final repo = ref.watch(familyMutationRepositoryProvider);
   return repo.streamAll(
     where: (query) => query.orderBy('date', descending: true),
+  );
+});
+
+// Broadcast Messages
+final broadcastRepositoryProvider = Provider<BroadcastRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return BroadcastRepository(fs);
+});
+
+final broadcastMessagesStreamProvider =
+    StreamProvider.autoDispose<List<BroadcastMessage>>((ref) {
+  final repo = ref.watch(broadcastRepositoryProvider);
+  return repo.streamAll(
+    where: (query) => query.orderBy('sentDate', descending: true),
+  );
+});
+
+// Penerimaan Warga (Citizen registration/intake)
+final penerimaanWargaRepositoryProvider =
+    Provider<PenerimaanWargaRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return PenerimaanWargaRepository(fs);
+});
+
+final penerimaanWargaStreamProvider =
+    StreamProvider.autoDispose<List<PenerimaanWarga>>((ref) {
+  final repo = ref.watch(penerimaanWargaRepositoryProvider);
+  return repo.streamAll(
+    where: (q) => q.orderBy('no', descending: false),
+  );
+});
+
+// Users
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return UserRepository(fs);
+});
+
+final usersStreamProvider = StreamProvider.autoDispose<List<AppUser>>((ref) {
+  final repo = ref.watch(userRepositoryProvider);
+  return repo.streamAll(
+    where: (q) => q.orderBy('name', descending: false),
+  );
+});
+
+// Channels
+final channelRepositoryProvider = Provider<ChannelRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return ChannelRepository(fs);
+});
+
+final channelsStreamProvider =
+    StreamProvider.autoDispose<List<Channel>>((ref) {
+  final repo = ref.watch(channelRepositoryProvider);
+  return repo.streamAll(
+    where: (q) => q.orderBy('name', descending: false),
   );
 });

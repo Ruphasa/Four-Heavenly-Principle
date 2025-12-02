@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/pages/login/login_page.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 
@@ -28,13 +29,8 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   bool _isHoveringLogin = false;
 
   final List<String> _listJenisKelamin = ['Laki-laki', 'Perempuan'];
-  final List<String> _listRumah = [
-    'i',
-    'Quis',
-    'Fasda',
-    'wer wer',
-    'Jl. Merbabu',
-  ];
+  // Rumah options will be populated from Firestore houses stream
+  List<String> _listRumah = const [];
   final List<String> _listStatusRumah = ['Pemilik', 'Penyewa'];
 
   @override
@@ -114,18 +110,42 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               items: _listJenisKelamin,
               onChanged: (v) => setState(() => _jenisKelamin = v),
             ),
-            _buildDropdown(
-              label: 'Pilih Rumah yang Sudah Ada',
-              hint: '-- Pilih Rumah --',
-              value: _rumah,
-              items: _listRumah,
-              onChanged: (v) {
-                setState(() {
-                  _rumah = v;
-                  if (v != null && v.isNotEmpty) _alamatController.clear();
-                });
-              },
-            ),
+            Consumer(builder: (context, ref, _) {
+              final housesAsync = ref.watch(housesStreamProvider);
+              return housesAsync.when(
+                data: (houses) {
+                  _listRumah = houses.map((h) => h.address).toList();
+                  return _buildDropdown(
+                    label: 'Pilih Rumah yang Sudah Ada',
+                    hint: '-- Pilih Rumah --',
+                    value: _rumah,
+                    items: _listRumah,
+                    onChanged: (v) {
+                      setState(() {
+                        _rumah = v;
+                        if (v != null && v.isNotEmpty) _alamatController.clear();
+                      });
+                    },
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(),
+                ),
+                error: (e, _) => _buildDropdown(
+                  label: 'Pilih Rumah yang Sudah Ada',
+                  hint: '-- Pilih Rumah --',
+                  value: _rumah,
+                  items: _listRumah,
+                  onChanged: (v) {
+                    setState(() {
+                      _rumah = v;
+                      if (v != null && v.isNotEmpty) _alamatController.clear();
+                    });
+                  },
+                ),
+              );
+            }),
             const Text(
               'Kalau tidak ada di daftar, isi alamat rumah di bawah ini',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),

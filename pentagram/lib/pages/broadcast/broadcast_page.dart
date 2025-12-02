@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/responsive_helper.dart';
-import 'package:pentagram/services/broadcast_service.dart';
 import 'package:pentagram/models/broadcast_message.dart';
 import 'package:pentagram/pages/broadcast/broadcast_create.dart';
 import 'package:pentagram/pages/broadcast/broadcast_detail.dart';
 import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
 class BroadcastPage extends ConsumerStatefulWidget {
   const BroadcastPage({super.key});
@@ -20,22 +20,16 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
 
-  List<BroadcastMessage> _filteredMessages = [];
   bool _isHeaderVisible = true;
-
-  BroadcastService get _broadcastService => ref.read(broadcastServiceProvider);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
-      setState(() {
-        _filteredMessages = _getFilteredMessages();
-      });
+      setState(() {});
     });
     _scrollController.addListener(_onScroll);
-    _loadMessages();
   }
 
   @override
@@ -57,28 +51,22 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
     }
   }
 
-  void _loadMessages() {
-    setState(() {
-      _filteredMessages = _getFilteredMessages();
-    });
-  }
-
-  List<BroadcastMessage> _getFilteredMessages() {
+  List<BroadcastMessage> _filterMessages(List<BroadcastMessage> messages) {
     switch (_tabController.index) {
-      case 0: // Semua
-        return _broadcastService.getAllMessages();
-      case 1: // Urgent
-        return _broadcastService.getUrgentMessages();
-      case 2: // Terkirim
-        return _broadcastService.getSentMessages();
+      case 0:
+        return messages;
+      case 1:
+        return messages.where((m) => m.isUrgent).toList();
+      case 2:
+        return messages; // all sent are the messages themselves
       default:
-        return _broadcastService.getAllMessages();
+        return messages;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final stats = _broadcastService.getBroadcastStatistics();
+    final asyncMessages = ref.watch(broadcastMessagesStreamProvider);
     final responsive = context.responsive;
 
     // Listen for controller errors to surface to UI (inside build)
@@ -94,9 +82,13 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: SafeArea(
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
+        child: asyncMessages.when(
+          data: (messages) {
+            final filtered = _filterMessages(messages);
+            final stats = _computeStats(messages);
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
             // Header
             SliverAppBar(
               expandedHeight: responsive.isCompact ? 250 : 280,
@@ -199,7 +191,7 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
                               Expanded(
                                 child: _buildMiniStatCard(
                                   'Terkirim',
-                                  stats['sent'],
+                                  stats['sent'] ?? 0,
                                   Icons.check_circle,
                                   responsive,
                                 ),
@@ -208,7 +200,7 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
                               Expanded(
                                 child: _buildMiniStatCard(
                                   'Urgent',
-                                  stats['urgent'],
+                                  stats['urgent'] ?? 0,
                                   Icons.priority_high,
                                   responsive,
                                 ),
@@ -217,7 +209,7 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
                               Expanded(
                                 child: _buildMiniStatCard(
                                   'Hari Ini',
-                                  stats['today'],
+                                  stats['today'] ?? 0,
                                   Icons.today,
                                   responsive,
                                 ),
@@ -329,7 +321,7 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
                         borderRadius: BorderRadius.circular(responsive.borderRadius(12)),
                       ),
                       child: Text(
-                        '${_filteredMessages.length}',
+                        '${filtered.length}',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: responsive.fontSize(12),
@@ -343,7 +335,7 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
             ),
 
             // Messages List
-            _filteredMessages.isEmpty
+            filtered.isEmpty
                 ? SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
@@ -378,14 +370,18 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
-                          final message = _filteredMessages[index];
+                          final message = filtered[index];
                           return _buildMessageCard(message, responsive);
                         },
-                        childCount: _filteredMessages.length,
+                        childCount: filtered.length,
                       ),
                     ),
                   ),
-          ],
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, st) => Center(child: Text('Error: $e')),
         ),
       ),
       floatingActionButton: AnimatedScale(
@@ -416,7 +412,6 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
               if (result == true) {
                 // Trigger controller refresh (no-op for sync service but keeps pattern consistent)
                 await ref.read(broadcastControllerProvider.notifier).refresh();
-                _loadMessages();
               }
             },
             backgroundColor: Colors.transparent,
@@ -433,6 +428,24 @@ class _BroadcastPageState extends ConsumerState<BroadcastPage>
         ),
       ),
     );
+  }
+
+  Map<String, int> _computeStats(List<BroadcastMessage> messages) {
+    final now = DateTime.now();
+    int urgent = 0;
+    int today = 0;
+    for (final m in messages) {
+      if (m.isUrgent) urgent++;
+      if (m.sentDate.year == now.year && m.sentDate.month == now.month && m.sentDate.day == now.day) {
+        today++;
+      }
+    }
+    return {
+      'totalMessages': messages.length,
+      'sent': messages.length,
+      'urgent': urgent,
+      'today': today,
+    };
   }
 
   Widget _buildMiniStatCard(String label, int value, IconData icon, ResponsiveHelper responsive) {

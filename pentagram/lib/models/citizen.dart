@@ -4,6 +4,8 @@ class Citizen {
   final String? documentId;
   final String name;
   final String nik;
+  final String? familyId; // relation to families
+  final String? houseId; // relation to houses
   final String familyRole;
   final String status;
   final String gender;
@@ -18,6 +20,8 @@ class Citizen {
     this.documentId,
     required this.name,
     required this.nik,
+    this.familyId,
+    this.houseId,
     required this.familyRole,
     required this.status,
     required this.gender,
@@ -55,6 +59,8 @@ class Citizen {
       documentId: map['_docId'] as String?,
       name: (map['name'] ?? '-') as String,
       nik: (map['nik'] ?? '-') as String,
+      familyId: map['familyId'] as String?,
+      houseId: map['houseId'] as String?,
       familyRole: (map['familyRole'] ?? '-') as String,
       status: (map['status'] ?? 'Aktif') as String,
       gender: (map['gender'] ?? 'Laki-laki') as String,
@@ -71,6 +77,8 @@ class Citizen {
     return {
       'name': name,
       'nik': nik,
+      'familyId': familyId,
+      'houseId': houseId,
       'familyRole': familyRole,
       'status': status,
       'gender': gender,

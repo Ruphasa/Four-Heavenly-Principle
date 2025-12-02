@@ -1,7 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pentagram/services/broadcast_service.dart';
-
-final broadcastServiceProvider = Provider<BroadcastService>((ref) => BroadcastService());
 
 class BroadcastState {
   final bool loading;
@@ -17,8 +14,7 @@ class BroadcastController extends StateNotifier<BroadcastState> {
   Future<void> refresh() async {
     state = state.copyWith(loading: true, error: null);
     try {
-      // Sync data access example; replace with async API if available
-      _ref.read(broadcastServiceProvider).getAllMessages();
+      // No-op: Firestore streams handle broadcast updates reactively
       state = state.copyWith(loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());

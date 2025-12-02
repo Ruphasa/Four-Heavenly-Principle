@@ -3,32 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/pages/manajemen_pengguna/tambah_pengguna.dart';
 import 'package:pentagram/providers/app_providers.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/models/user.dart';
 
 class DaftarPenggunaPage extends ConsumerStatefulWidget {
   DaftarPenggunaPage({super.key});
-
-  final List<Map<String, String>> dataPengguna = [
-    {'no': '1', 'nama': 'Budi Santoso', 'email': 'budi@gmail.com', 'status': 'Diterima'},
-    {'no': '2', 'nama': 'Siti Aminah', 'email': 'siti@gmail.com', 'status': 'Menunggu'},
-    {'no': '3', 'nama': 'Rizky Ananda', 'email': 'rizky@gmail.com', 'status': 'Diterima'},
-    {'no': '4', 'nama': 'Dewi Lestari', 'email': 'dewi@gmail.com', 'status': 'Ditolak'},
-    {'no': '5', 'nama': 'Ahmad Fauzi', 'email': 'ahmad@gmail.com', 'status': 'Menunggu'},
-    {'no': '6', 'nama': 'Nadya Pratama', 'email': 'nadya@gmail.com', 'status': 'Diterima'},
-    {'no': '7', 'nama': 'Fajar Nugroho', 'email': 'fajar@gmail.com', 'status': 'Ditolak'},
-    {'no': '8', 'nama': 'Citra Permata', 'email': 'citra@gmail.com', 'status': 'Diterima'},
-    {'no': '9', 'nama': 'Ilham Saputra', 'email': 'ilham@gmail.com', 'status': 'Menunggu'},
-    {'no': '10', 'nama': 'Dina Kusuma', 'email': 'dina@gmail.com', 'status': 'Diterima'},
-    {'no': '11', 'nama': 'Rahmat Hidayat', 'email': 'rahmat@gmail.com', 'status': 'Menunggu'},
-    {'no': '12', 'nama': 'Laila Rahma', 'email': 'laila@gmail.com', 'status': 'Diterima'},
-    {'no': '13', 'nama': 'Teguh Prasetyo', 'email': 'teguh@gmail.com', 'status': 'Ditolak'},
-    {'no': '14', 'nama': 'Yulia Kartika', 'email': 'yulia@gmail.com', 'status': 'Menunggu'},
-    {'no': '15', 'nama': 'Anton Wijaya', 'email': 'anton@gmail.com', 'status': 'Diterima'},
-    {'no': '16', 'nama': 'Bella Puspita', 'email': 'bella@gmail.com', 'status': 'Ditolak'},
-    {'no': '17', 'nama': 'Hendra Gunawan', 'email': 'hendra@gmail.com', 'status': 'Menunggu'},
-    {'no': '18', 'nama': 'Maya Lestari', 'email': 'maya@gmail.com', 'status': 'Diterima'},
-    {'no': '19', 'nama': 'Reza Aditya', 'email': 'reza@gmail.com', 'status': 'Menunggu'},
-    {'no': '20', 'nama': 'Intan Permata', 'email': 'intan@gmail.com', 'status': 'Diterima'},
-  ];
 
   @override
   ConsumerState<DaftarPenggunaPage> createState() => _DaftarPenggunaPageState();
@@ -97,12 +76,15 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                 const SizedBox(height: 24),
 
                 // List pengguna
-                ListView.builder(
+                Consumer(builder: (context, ref, _) {
+                  final usersAsync = ref.watch(usersStreamProvider);
+                  return usersAsync.when(
+                    data: (users) => ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: widget.dataPengguna.length,
-                  itemBuilder: (context, index) {
-                    final data = widget.dataPengguna[index];
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        final user = users[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -121,7 +103,7 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                         leading: CircleAvatar(
                           backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                           child: Text(
-                            data['no']!,
+                                '${index + 1}',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -129,7 +111,7 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                           ),
                         ),
                         title: Text(
-                          data['nama']!,
+                              user.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
@@ -140,7 +122,7 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                           children: [
                             const SizedBox(height: 4),
                             Text(
-                              data['email']!,
+                                  user.email,
                               style: TextStyle(
                                 color: Colors.grey.shade700,
                                 fontSize: 13,
@@ -149,13 +131,13 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                             const SizedBox(height: 6),
                             Container(
                               decoration: BoxDecoration(
-                                color: _statusColor(data['status']!),
+                                    color: _statusColor(user.status),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 4),
                               child: Text(
-                                data['status']!,
+                                    user.status,
                                 style: const TextStyle(
                                   color: Colors.black87,
                                   fontSize: 12,
@@ -170,9 +152,16 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                               borderRadius: BorderRadius.circular(10)),
                           onSelected: (value) {
                             if (value == 'detail') {
-                              _showDetailDialog(context, data);
+                                  _showDetailDialog(context, {
+                                    'nama': user.name,
+                                    'email': user.email,
+                                    'status': user.status,
+                                  });
                             } else if (value == 'hapus') {
-                              _showDeleteDialog(context, data);
+                                  _showDeleteDialog(context, {
+                                    'nama': user.name,
+                                    'email': user.email,
+                                  });
                             }
                           },
                           itemBuilder: (context) => [
@@ -200,8 +189,12 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
                         ),
                       ),
                     );
-                  },
-                ),
+                      },
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('Gagal memuat: $e')),
+                  );
+                }),
               ],
             ),
           ),

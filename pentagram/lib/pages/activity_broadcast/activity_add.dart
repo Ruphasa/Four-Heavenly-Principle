@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pentagram/models/activity.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/pages/activity_broadcast/activity_add_step_1.dart';
 import 'package:pentagram/pages/activity_broadcast/activity_add_step_2.dart';
 import 'package:pentagram/pages/activity_broadcast/activity_add_step_3.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/common/snackbar_helper.dart';
 
-class ActivityAdd extends StatefulWidget {
+class ActivityAdd extends ConsumerStatefulWidget {
   const ActivityAdd({super.key});
 
   @override
-  State<ActivityAdd> createState() => _ActivityAddState();
+  ConsumerState<ActivityAdd> createState() => _ActivityAddState();
 }
 
-class _ActivityAddState extends State<ActivityAdd> {
+class _ActivityAddState extends ConsumerState<ActivityAdd> {
   final _formKey = GlobalKey<FormState>();
   final _namaKegiatanController = TextEditingController();
   final _deskripsiController = TextEditingController();
@@ -352,23 +355,36 @@ class _ActivityAddState extends State<ActivityAdd> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final activityData = {
-        'nama': _namaKegiatanController.text.trim(),
-        'kategori': _selectedKategori,
-        'tanggal': _selectedDate!.toIso8601String(),
-        'lokasi': _selectedLokasi,
-        'penanggung_jawab': _selectedPenanggungJawab,
-        'deskripsi': _deskripsiController.text.trim(),
-      };
+      try {
+        final repo = ref.read(activityRepositoryProvider);
+        final activity = Activity(
+          id: 0,
+          nama: _namaKegiatanController.text.trim(),
+          kategori: _selectedKategori!,
+          penanggungJawab: _selectedPenanggungJawab!,
+          tanggal: _selectedDate!,
+          waktu: '00:00',
+          deskripsi: _deskripsiController.text.trim(),
+          lokasi: _selectedLokasi!,
+          peserta: 0,
+        );
+        await repo.create(activity);
 
-      SnackbarHelper.show(
-        context,
-        'Kegiatan berhasil ditambahkan!',
-        backgroundColor: Colors.green,
-      );
-      Navigator.pop(context, activityData);
+        SnackbarHelper.show(
+          context,
+          'Kegiatan berhasil ditambahkan!',
+          backgroundColor: Colors.green,
+        );
+        Navigator.pop(context, true);
+      } catch (e) {
+        SnackbarHelper.show(
+          context,
+          'Gagal menyimpan: $e',
+          backgroundColor: Colors.red,
+        );
+      }
     }
   }
 }

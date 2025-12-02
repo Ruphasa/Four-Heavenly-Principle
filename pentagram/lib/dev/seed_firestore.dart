@@ -7,6 +7,7 @@ import 'package:pentagram/models/family.dart';
 import 'package:pentagram/models/family_mutation.dart';
 import 'package:pentagram/models/house.dart';
 import 'package:pentagram/models/transaction.dart';
+import 'package:pentagram/models/broadcast_message.dart';
 
 /// Dev-only seeding helper. Call `seedFirestore()` once after Firebase init
 /// (e.g. from a debug-only button) to populate sample data if collections are empty.
@@ -23,6 +24,10 @@ Future<void> seedFirestore() async {
   await _seedFamilies(firestore);
   await _seedHouses(firestore);
   await _seedFamilyMutations(firestore);
+  await _seedBroadcastMessages(firestore);
+  await _seedUsers(firestore);
+  await _seedChannels(firestore);
+  await _seedPenerimaanWarga(firestore);
 }
 
 Future<void> _seedPesan(FirebaseFirestore firestore) async {
@@ -64,6 +69,118 @@ Future<void> _seedPesan(FirebaseFirestore firestore) async {
     batch.set(ref, doc);
   }
   await batch.commit();
+}
+
+Future<void> _seedBroadcastMessages(FirebaseFirestore firestore) async {
+  final col = firestore.collection('broadcast_messages');
+  final snap = await col.limit(1).get();
+  if (snap.docs.isNotEmpty) return;
+
+  final now = DateTime.now();
+  final messages = [
+    BroadcastMessage(
+      id: 1,
+      title: 'Pengumuman Gotong Royong Minggu Ini',
+      content:
+          'Kepada seluruh warga RT 01/RW 02, dihimbau untuk mengikuti kegiatan gotong royong pada hari Minggu, 27 Oktober 2024 pukul 08:00 WIB. Mohon kehadiran semua warga.',
+      category: 'Kegiatan',
+      isUrgent: false,
+      sender: 'Admin Jawara',
+      sentDate: now.subtract(const Duration(days: 3, hours: 2)),
+      recipientCount: 85,
+      readCount: 72,
+      recipients: const ['Semua Warga RT 01'],
+    ),
+    BroadcastMessage(
+      id: 2,
+      title: 'URGENT: Pemadaman Listrik Besok',
+      content:
+          'Info penting! Besok akan ada pemadaman listrik dari PLN pukul 09:00-15:00 WIB. Harap persiapkan diri dan matikan peralatan listrik penting.',
+      category: 'Informasi Umum',
+      isUrgent: true,
+      sender: 'Pak RT',
+      sentDate: now.subtract(const Duration(days: 2, hours: 6)),
+      recipientCount: 85,
+      readCount: 81,
+      recipients: const ['Semua Warga RT 01'],
+    ),
+    BroadcastMessage(
+      id: 3,
+      title: 'Reminder Pembayaran Iuran RT Bulan Ini',
+      content:
+          'Kepada warga yang belum membayar iuran RT bulan ini sebesar Rp 50.000, dimohon untuk segera melakukan pembayaran paling lambat tanggal 25.',
+      category: 'Iuran',
+      isUrgent: false,
+      sender: 'Bu Bendahara',
+      sentDate: now.subtract(const Duration(days: 4)),
+      recipientCount: 32,
+      readCount: 28,
+      recipients: const ['Warga Belum Bayar'],
+    ),
+  ];
+
+  final batch = firestore.batch();
+  for (final m in messages) {
+    batch.set(col.doc(), m.toMap());
+  }
+  await batch.commit();
+}
+
+Future<void> _seedUsers(FirebaseFirestore firestore) async {
+  final col = firestore.collection('users');
+  final count = await col.limit(1).get();
+  if (count.docs.isNotEmpty) return;
+  final users = [
+    {'name': 'Budi Santoso', 'email': 'budi@gmail.com', 'status': 'Diterima'},
+    {'name': 'Siti Aminah', 'email': 'siti@gmail.com', 'status': 'Menunggu'},
+    {'name': 'Rizky Ananda', 'email': 'rizky@gmail.com', 'status': 'Diterima'},
+  ];
+  for (final u in users) {
+    await col.add(u);
+  }
+}
+
+Future<void> _seedChannels(FirebaseFirestore firestore) async {
+  final col = firestore.collection('channels');
+  final count = await col.limit(1).get();
+  if (count.docs.isNotEmpty) return;
+  final channels = [
+    {'name': 'Transfer via BCA', 'type': 'Bank', 'accountName': 'RT Jawara Karangploso', 'thumbnail': 'assets/icons/bank.png'},
+    {'name': 'Gopay Ketua RT', 'type': 'E-Wallet', 'accountName': 'Budi Santoso', 'thumbnail': 'assets/icons/ewallet.png'},
+    {'name': 'QRIS Resmi RT 08', 'type': 'QRIS', 'accountName': 'RW 08 Karangploso', 'thumbnail': 'assets/icons/qris.png'},
+  ];
+  for (final c in channels) {
+    await col.add(c);
+  }
+}
+
+Future<void> _seedPenerimaanWarga(FirebaseFirestore firestore) async {
+  final col = firestore.collection('penerimaan_warga');
+  final count = await col.limit(1).get();
+  if (count.docs.isNotEmpty) return;
+  final warga = [
+    {
+      'no': 1,
+      'nama': 'Farhan Hidayat',
+      'nik': '3201012345678901',
+      'email': 'farhan@gmail.com',
+      'jenisKelamin': 'Laki-laki',
+      'fotoIdentitas': 'assets/images/ktp1.png',
+      'statusRegistrasi': 'Pending',
+    },
+    {
+      'no': 2,
+      'nama': 'Siti Nurhaliza',
+      'nik': '3201012345678902',
+      'email': 'siti@gmail.com',
+      'jenisKelamin': 'Perempuan',
+      'fotoIdentitas': 'assets/images/ktp2.png',
+      'statusRegistrasi': 'Diterima',
+    },
+  ];
+  for (final w in warga) {
+    await col.add(w);
+  }
 }
 
 Future<void> _seedActivities(FirebaseFirestore firestore) async {

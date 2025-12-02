@@ -6,6 +6,7 @@ class Activity {
   final String nama;
   final String kategori;
   final String penanggungJawab;
+  final String? organizerUserId; // relation to users
   final DateTime tanggal;
   final String waktu;
   final String deskripsi;
@@ -23,6 +24,7 @@ class Activity {
     required this.deskripsi,
     required this.lokasi,
     required this.peserta,
+    this.organizerUserId,
   });
 
   // Factory constructor to create Activity from JSON/Map
@@ -51,6 +53,7 @@ class Activity {
       kategori: (map['kategori'] ?? map['category'] ?? '-') as String,
       penanggungJawab:
           (map['penanggung_jawab'] ?? map['penanggungJawab'] ?? '-') as String,
+      organizerUserId: map['organizerUserId'] as String?,
       tanggal: parsedDate,
       waktu: (map['waktu'] ?? '-') as String,
       deskripsi: (map['deskripsi'] ?? map['description'] ?? '-') as String,
@@ -66,6 +69,7 @@ class Activity {
       'nama': nama,
       'kategori': kategori,
       'penanggung_jawab': penanggungJawab,
+      'organizerUserId': organizerUserId,
       'tanggal': Timestamp.fromDate(tanggal),
       'waktu': waktu,
       'deskripsi': deskripsi,
@@ -86,6 +90,7 @@ class Activity {
     String? deskripsi,
     String? lokasi,
     int? peserta,
+    String? organizerUserId,
   }) {
     return Activity(
       documentId: documentId ?? this.documentId,
@@ -93,6 +98,7 @@ class Activity {
       nama: nama ?? this.nama,
       kategori: kategori ?? this.kategori,
       penanggungJawab: penanggungJawab ?? this.penanggungJawab,
+      organizerUserId: organizerUserId ?? this.organizerUserId,
       tanggal: tanggal ?? this.tanggal,
       waktu: waktu ?? this.waktu,
       deskripsi: deskripsi ?? this.deskripsi,

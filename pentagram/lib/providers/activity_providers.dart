@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pentagram/services/activity_service.dart';
+// Legacy ActivityService removed; providers now rely on Firestore streams.
 
-final activityServiceProvider = Provider<ActivityService>((ref) => ActivityService());
+// Removed ActivityService provider to eliminate dummy data dependency.
 
 class ActivityState {
   final bool loading;
@@ -17,9 +17,7 @@ class ActivityController extends StateNotifier<ActivityState> {
   Future<void> refresh() async {
     state = state.copyWith(loading: true, error: null);
     try {
-      // Sync data access via ActivityService; adjust if async later
-      _ref.read(activityServiceProvider).getUpcomingActivities();
-      _ref.read(activityServiceProvider).getActivityStatistics();
+      // No-op: Firestore streams update UI reactively.
       state = state.copyWith(loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString());
