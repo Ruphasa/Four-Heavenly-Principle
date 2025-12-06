@@ -49,9 +49,9 @@ final activityRepositoryProvider = Provider<ActivityFirestoreRepository>((ref) {
 final activitiesStreamProvider =
     StreamProvider.autoDispose<List<Activity>>((ref) {
   final repo = ref.watch(activityRepositoryProvider);
-  // Order by a field that exists broadly; fallback to createdAt.
+  // Order by tanggal (activity date) field that exists in Activity model
   return repo.streamAll(
-    where: (query) => query.orderBy('createdAt', descending: false),
+    where: (query) => query.orderBy('tanggal', descending: false),
   );
 });
 
@@ -79,9 +79,9 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 final transactionsStreamProvider =
     StreamProvider.autoDispose<List<Transaction>>((ref) {
   final repo = ref.watch(transactionRepositoryProvider);
-  // Many existing docs use createdAt; order by that for broad compatibility.
+  // Order by date field that exists in Transaction model
   return repo.streamAll(
-    where: (query) => query.orderBy('createdAt', descending: true),
+    where: (query) => query.orderBy('date', descending: true),
   );
 });
 

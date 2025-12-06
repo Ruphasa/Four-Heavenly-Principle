@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentagram/pages/login/login_page.dart';
@@ -17,8 +17,15 @@ void main() async {
 
   await initializeDateFormatting('id_ID', null);
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Seeding moved to after login to ensure auth state is ready
+  // Initialize Firebase with proper error handling
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Firebase already initialized (hot restart case)
+    debugPrint('Firebase initialization: $e');
+  }
   
   runApp(
     const ProviderScope(

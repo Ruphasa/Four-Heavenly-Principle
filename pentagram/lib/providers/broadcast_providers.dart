@@ -9,8 +9,8 @@ class BroadcastState {
 }
 
 class BroadcastController extends StateNotifier<BroadcastState> {
-  BroadcastController(this._ref) : super(const BroadcastState());
-  final Ref _ref;
+  BroadcastController(Ref ref) : super(const BroadcastState());
+  
   Future<void> refresh() async {
     state = state.copyWith(loading: true, error: null);
     try {

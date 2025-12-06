@@ -22,7 +22,6 @@ class ImagePreviewScreen extends StatefulWidget {
 class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
   final KtpFraudDetectionService _fraudService = KtpFraudDetectionService();
   bool _isValidating = false;
-  KtpFraudResult? _fraudResult;
 
   Future<void> _validateAndConfirm() async {
     setState(() {
@@ -34,7 +33,6 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
       final result = await _fraudService.detectFraud(widget.image);
 
       setState(() {
-        _fraudResult = result;
         _isValidating = false;
       });
 

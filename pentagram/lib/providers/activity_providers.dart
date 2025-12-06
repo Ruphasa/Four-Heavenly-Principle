@@ -12,8 +12,8 @@ class ActivityState {
 }
 
 class ActivityController extends StateNotifier<ActivityState> {
-  ActivityController(this._ref) : super(const ActivityState());
-  final Ref _ref;
+  ActivityController(Ref ref) : super(const ActivityState());
+  
   Future<void> refresh() async {
     state = state.copyWith(loading: true, error: null);
     try {

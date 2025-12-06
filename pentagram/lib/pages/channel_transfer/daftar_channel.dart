@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
-import 'package:pentagram/models/channel.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/pages/channel_transfer/detail_channel_page.dart';
 import 'package:pentagram/pages/channel_transfer/tambah_channel.dart'; // arah ke file lib/pages/channel_transfer/tambah_channel.dart

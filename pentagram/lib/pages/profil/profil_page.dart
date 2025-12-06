@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/utils/responsive_helper.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/providers/auth_providers.dart';
 import 'package:pentagram/pages/login/login_page.dart';
@@ -8,6 +9,7 @@ import 'package:pentagram/pages/profil/edit_profil_page.dart';
 import 'package:pentagram/widgets/profil/profile_header.dart';
 import 'package:pentagram/widgets/profil/profile_menu_section.dart';
 import 'package:pentagram/widgets/profil/profile_menu_item.dart';
+import 'package:pentagram/widgets/common/responsive_dialog.dart';
 
 class ProfilPage extends ConsumerWidget {
   const ProfilPage({super.key});
@@ -16,29 +18,14 @@ class ProfilPage extends ConsumerWidget {
     // Show confirmation dialog
     final shouldLogout = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.logout, color: AppColors.error),
-            SizedBox(width: 12),
-            Text('Konfirmasi Logout'),
-          ],
-        ),
-        content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Logout'),
-          ),
-        ],
+      builder: (dialogContext) => ResponsiveConfirmDialog(
+        title: 'Konfirmasi Logout',
+        message: 'Apakah Anda yakin ingin keluar dari aplikasi?',
+        confirmText: 'Logout',
+        cancelText: 'Batal',
+        icon: Icons.logout,
+        iconColor: AppColors.error,
+        confirmColor: AppColors.error,
       ),
     );
 
@@ -50,21 +37,31 @@ class ProfilPage extends ConsumerWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Logging out...'),
-              ],
+      builder: (loadingContext) {
+        final responsive = loadingContext.responsive;
+        return Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(responsive.padding(24)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: responsive.iconSize(40),
+                    height: responsive.iconSize(40),
+                    child: const CircularProgressIndicator(),
+                  ),
+                  SizedBox(height: responsive.spacing(16)),
+                  Text(
+                    'Logging out...',
+                    style: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     // Perform logout
@@ -205,7 +202,7 @@ class ProfilPage extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            _buildFooter(),
+            _buildFooter(context),
             const SizedBox(height: 24),
           ],
         ),
@@ -214,26 +211,32 @@ class ProfilPage extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    final responsive = context.responsive;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: responsive.padding(24)),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () => _navigateToEditProfile(context),
-              icon: const Icon(Icons.edit, size: 18),
-              label: const Text(
+              icon: Icon(Icons.edit, size: responsive.iconSize(18)),
+              label: Text(
                 'Edit Profil',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: responsive.fontSize(14),
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                padding: EdgeInsets.symmetric(
+                  vertical: responsive.padding(14),
                 ),
-                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(responsive.borderRadius(12)),
+                ),
+                elevation: responsive.elevation(2),
               ),
             ),
           ),
@@ -242,19 +245,26 @@ class ProfilPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildFooter() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24),
+  Widget _buildFooter(BuildContext context) {
+    final responsive = context.responsive;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: responsive.padding(24)),
       child: Column(
         children: [
           Text(
             'Version 0.1.0',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: responsive.fontSize(12),
+              color: AppColors.textSecondary,
+            ),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: responsive.spacing(4)),
           Text(
             'Copyright © 2025 Pentagram',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: responsive.fontSize(12),
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),

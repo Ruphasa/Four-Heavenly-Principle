@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/utils/responsive_helper.dart';
 import 'package:pentagram/pages/manajemen_pengguna/tambah_pengguna.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
-import 'package:pentagram/models/user.dart';
 
 class DaftarPenggunaPage extends ConsumerStatefulWidget {
   DaftarPenggunaPage({super.key});
@@ -248,129 +248,297 @@ class _DaftarPenggunaPageState extends ConsumerState<DaftarPenggunaPage> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Filter Manajemen Pengguna',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: namaController,
-              decoration: InputDecoration(
-                labelText: 'Nama',
-                hintText: 'Cari nama...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      builder: (dialogContext) {
+        final responsive = dialogContext.responsive;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.borderRadius(16)),
+          ),
+          titlePadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          contentPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          actionsPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(16),
+          ),
+          title: Text(
+            'Filter Pengguna',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: responsive.fontSize(16),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: namaController,
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+                decoration: InputDecoration(
+                  labelText: 'Nama',
+                  labelStyle: TextStyle(fontSize: responsive.fontSize(13)),
+                  hintText: 'Cari nama...',
+                  hintStyle: TextStyle(fontSize: responsive.fontSize(13)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(responsive.borderRadius(8)),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: responsive.padding(12),
+                    vertical: responsive.padding(12),
+                  ),
                 ),
+              ),
+              SizedBox(height: responsive.spacing(12)),
+              DropdownButtonFormField<String>(
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+                decoration: InputDecoration(
+                  labelText: 'Status',
+                  labelStyle: TextStyle(fontSize: responsive.fontSize(13)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(responsive.borderRadius(8)),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: responsive.padding(12),
+                    vertical: responsive.padding(12),
+                  ),
+                ),
+                hint: Text(
+                  '-- Pilih Status --',
+                  style: TextStyle(fontSize: responsive.fontSize(13)),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'Diterima',
+                    child: Text(
+                      'Diterima',
+                      style: TextStyle(fontSize: responsive.fontSize(14)),
+                    ),
+                ),
+                  DropdownMenuItem(
+                    value: 'Ditolak',
+                    child: Text(
+                      'Ditolak',
+                      style: TextStyle(fontSize: responsive.fontSize(14)),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Menunggu',
+                    child: Text(
+                      'Menunggu',
+                      style: TextStyle(fontSize: responsive.fontSize(14)),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  selectedStatus = value;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                namaController.clear();
+                selectedStatus = null;
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey.shade800,
+                backgroundColor: Colors.grey.shade200,
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.padding(12),
+                  vertical: responsive.padding(8),
+                ),
+              ),
+              child: Text(
+                'Reset',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
               ),
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            ElevatedButton(
+              onPressed: () {
+                // Apply filters (placeholder) and trigger refresh
+                ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.padding(12),
+                  vertical: responsive.padding(8),
                 ),
               ),
-              hint: const Text('-- Pilih Status --'),
-              items: const [
-                DropdownMenuItem(value: 'Diterima', child: Text('Diterima')),
-                DropdownMenuItem(value: 'Ditolak', child: Text('Ditolak')),
-                DropdownMenuItem(value: 'Menunggu', child: Text('Menunggu')),
-              ],
-              onChanged: (value) {
-                selectedStatus = value;
-              },
+              child: Text(
+                'Terapkan',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              namaController.clear();
-              selectedStatus = null;
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey.shade800,
-              backgroundColor: Colors.grey.shade200,
-            ),
-            child: const Text('Reset Filter'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Apply filters (placeholder) and trigger refresh
-              ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
-            child: const Text('Terapkan'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _showDetailDialog(BuildContext context, Map<String, String> data) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Detail Pengguna'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nama: ${data['nama']}'),
-            Text('Email: ${data['email']}'),
-            Text('Status: ${data['status']}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+      builder: (dialogContext) {
+        final responsive = dialogContext.responsive;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.borderRadius(16)),
           ),
-        ],
-      ),
+          titlePadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          contentPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          actionsPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(16),
+          ),
+          title: Text(
+            'Detail Pengguna',
+            style: TextStyle(
+              fontSize: responsive.fontSize(16),
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Nama: ${data['nama']}',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+              SizedBox(height: responsive.spacing(4)),
+              Text(
+                'Email: ${data['email']}',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+              SizedBox(height: responsive.spacing(4)),
+              Text(
+                'Status: ${data['status']}',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Tutup',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showDeleteDialog(BuildContext context, Map<String, String> data) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Pengguna'),
-        content: Text('Apakah kamu yakin ingin menghapus ${data['nama']}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
+      builder: (dialogContext) {
+        final responsive = dialogContext.responsive;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.borderRadius(16)),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${data['nama']} telah dihapus'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              // Trigger a refresh after deletion
-              ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+          titlePadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          contentPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(12),
+          ),
+          actionsPadding: EdgeInsets.fromLTRB(
+            responsive.padding(20),
+            0,
+            responsive.padding(20),
+            responsive.padding(16),
+          ),
+          title: Text(
+            'Hapus Pengguna',
+            style: TextStyle(
+              fontSize: responsive.fontSize(16),
+              fontWeight: FontWeight.w600,
             ),
-            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+          content: Text(
+            'Apakah kamu yakin ingin menghapus ${data['nama']}?',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Batal',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${data['nama']} telah dihapus'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                // Trigger a refresh after deletion
+                ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.padding(12),
+                  vertical: responsive.padding(8),
+                ),
+              ),
+              child: Text(
+                'Hapus',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

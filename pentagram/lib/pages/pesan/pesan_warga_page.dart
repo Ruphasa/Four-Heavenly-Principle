@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/utils/responsive_helper.dart';
 import 'package:pentagram/models/pesan_warga.dart';
 import 'package:pentagram/widgets/pesan/pesan_card.dart';
 import 'package:pentagram/widgets/pesan/filter_pesan_dialog.dart';
+import 'package:pentagram/widgets/pesan/compose_pesan_dialog.dart';
 import 'package:pentagram/pages/pesan/detail_pesan.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 
@@ -209,6 +211,24 @@ class _PesanWargaPageState extends ConsumerState<PesanWargaPage> {
         ],
       ),
       body: content,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => const ComposePesanDialog(),
+          );
+          if (result == true) {
+            // Refresh pesan list
+            ref.read(pesanControllerProvider.notifier).refresh();
+          }
+        },
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add),
+        label: Text(
+          'Pesan Baru',
+          style: TextStyle(fontSize: context.responsive.fontSize(14)),
+        ),
+      ),
     );
   }
 
