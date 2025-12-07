@@ -24,18 +24,7 @@ class ActivityConstants {
     'Kantor Desa',
   ];
 
-  static const List<String> penanggungJawabOptions = [
-    'Pak Bambang',
-    'Pak Rosyid',
-    'Pak Budi',
-    'Pak Ahmad',
-    'Bu Sari',
-    'Pak Joko',
-    'Bu Rina',
-    'Pak Sutrisno',
-    'Bu Endah',
-    'Pak Wahyu',
-  ];
+  // Removed penanggungJawabOptions - now using real Firestore citizen data
 
   // Category colors mapping
   static const Map<String, int> categoryColors = {

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/models/house.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class TambahRumahPage extends StatefulWidget {
+class TambahRumahPage extends ConsumerStatefulWidget {
   const TambahRumahPage({super.key});
 
   @override
-  State<TambahRumahPage> createState() => _TambahRumahPageState();
+  ConsumerState<TambahRumahPage> createState() => _TambahRumahPageState();
 }
 
-class _TambahRumahPageState extends State<TambahRumahPage> {
+class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
   final _formKey = GlobalKey<FormState>();
   final _alamatController = TextEditingController();
   final _rtController = TextEditingController();
@@ -18,15 +21,12 @@ class _TambahRumahPageState extends State<TambahRumahPage> {
   final _keteranganController = TextEditingController();
   
   String? _keluargaId;
+  String? _keluargaNama;
   String _statusRumah = 'Ditempati';
   String _jenisRumah = 'Permanen';
   String _statusKepemilikan = 'Milik Sendiri';
 
-  final List<Map<String, String>> _keluargaOptions = [
-    {'id': '1', 'nama': 'Keluarga Ahmad Subarjo', 'kk': 'Ahmad Subarjo'},
-    {'id': '2', 'nama': 'Keluarga Budi Santoso', 'kk': 'Budi Santoso'},
-    {'id': '3', 'nama': 'Keluarga Andi Wijaya', 'kk': 'Andi Wijaya'},
-  ];
+  // Removed dummy data - will use Firestore data
 
   final List<String> _statusRumahOptions = ['Ditempati', 'Kosong', 'Sedang Renovasi'];
   final List<String> _jenisRumahOptions = ['Permanen', 'Semi Permanen', 'Tidak Permanen'];
@@ -49,16 +49,55 @@ class _TambahRumahPageState extends State<TambahRumahPage> {
     super.dispose();
   }
 
-  void _simpanData() {
+  Future<void> _simpanData() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement save functionality
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data rumah berhasil disimpan'),
-          backgroundColor: AppColors.success,
-        ),
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-      Navigator.pop(context);
+
+      try {
+        // Create House object
+        final house = House(
+          address: _alamatController.text.trim(),
+          rt: _rtController.text.trim(),
+          rw: _rwController.text.trim(),
+          headName: _keluargaNama ?? 'Belum Ditentukan',
+          status: _statusRumah,
+          familyId: _keluargaId,
+        );
+
+        // Save to Firestore
+        final repo = ref.read(houseRepositoryProvider);
+        await repo.create(house);
+
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data rumah berhasil disimpan ke database'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate success
+      } catch (e) {
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -246,15 +285,100 @@ class _TambahRumahPageState extends State<TambahRumahPage> {
 
               // Penghuni Section
               _buildSectionHeader('Penghuni'),
-              _buildKeluargaDropdownField(
-                label: 'Keluarga Penghuni',
-                value: _keluargaId,
-                items: _keluargaOptions,
-                icon: Icons.family_restroom_rounded,
-                onChanged: (value) {
-                  setState(() {
-                    _keluargaId = value;
-                  });
+              const Text(
+                'Keluarga Penghuni',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Consumer(
+                builder: (context, ref, child) {
+                  final familiesAsync = ref.watch(familiesStreamProvider);
+                  
+                  return familiesAsync.when(
+                    data: (families) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.cardBackground,
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: _keluargaId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.family_restroom_rounded, color: AppColors.primary),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            hintText: 'Pilih Keluarga (Opsional)',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                          ),
+                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('Belum Ditentukan'),
+                            ),
+                            ...families.map((family) {
+                              return DropdownMenuItem<String>(
+                                value: family.documentId,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      family.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    Text(
+                                      'KK: ${family.headOfFamily}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _keluargaId = value;
+                              if (value != null) {
+                                final selected = families.firstWhere((f) => f.documentId == value);
+                                _keluargaNama = selected.headOfFamily;
+                              } else {
+                                _keluargaNama = null;
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (error, _) => Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        border: Border.all(color: AppColors.error),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Error loading keluarga: $error',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 16),
@@ -434,72 +558,6 @@ class _TambahRumahPageState extends State<TambahRumahPage> {
               return DropdownMenuItem<String>(
                 value: item,
                 child: Text(item),
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKeluargaDropdownField({
-    required String label,
-    required String? value,
-    required List<Map<String, String>> items,
-    required IconData icon,
-    required void Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-            color: AppColors.cardBackground,
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            isExpanded: true,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              hintText: 'Pilih Keluarga (opsional)',
-              hintStyle: const TextStyle(color: AppColors.textMuted),
-            ),
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-            items: items.map((Map<String, String> item) {
-              return DropdownMenuItem<String>(
-                value: item['id'],
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item['nama']!,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      'KK: ${item['kk']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
               );
             }).toList(),
             onChanged: onChanged,

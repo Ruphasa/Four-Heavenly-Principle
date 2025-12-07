@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/models/family.dart' as models;
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class TambahKeluargaPage extends StatefulWidget {
+class TambahKeluargaPage extends ConsumerStatefulWidget {
   const TambahKeluargaPage({super.key});
 
   @override
-  State<TambahKeluargaPage> createState() => _TambahKeluargaPageState();
+  ConsumerState<TambahKeluargaPage> createState() => _TambahKeluargaPageState();
 }
 
-class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
+class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
   final _formKey = GlobalKey<FormState>();
   final _namaKeluargaController = TextEditingController();
   final _noKKController = TextEditingController();
@@ -17,11 +20,9 @@ class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
   final _rwController = TextEditingController();
   
   String? _kepalaKeluargaId;
-  final List<Map<String, String>> _wargaOptions = [
-    {'id': '1', 'nama': 'Ahmad Subarjo', 'nik': '3201012345678901'},
-    {'id': '2', 'nama': 'Budi Santoso', 'nik': '3201012345678903'},
-    {'id': '3', 'nama': 'Andi Wijaya', 'nik': '3201012345678905'},
-  ];
+  String? _kepalaKeluargaNama;
+  
+  // Removed dummy data - will use Firestore data
 
   @override
   void dispose() {
@@ -33,7 +34,7 @@ class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
     super.dispose();
   }
 
-  void _simpanData() {
+  Future<void> _simpanData() async {
     if (_formKey.currentState!.validate()) {
       if (_kepalaKeluargaId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -45,14 +46,52 @@ class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
         return;
       }
 
-      // TODO: Implement save functionality
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data keluarga berhasil disimpan'),
-          backgroundColor: AppColors.success,
-        ),
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-      Navigator.pop(context);
+
+      try {
+        // Create Family object
+        final family = models.Family(
+          name: _namaKeluargaController.text.trim(),
+          headOfFamily: _kepalaKeluargaNama ?? 'Unknown',
+          headCitizenId: _kepalaKeluargaId,
+          memberCount: 1, // Initial count, will be updated when members are added
+          address: '${_alamatController.text.trim()}, RT ${_rtController.text.trim()}/RW ${_rwController.text.trim()}',
+        );
+
+        // Save to Firestore
+        final repo = ref.read(familyRepositoryProvider);
+        await repo.create(family);
+
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data keluarga berhasil disimpan ke database'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate success
+      } catch (e) {
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -153,15 +192,111 @@ class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildWargaDropdownField(
-                label: 'Kepala Keluarga',
-                value: _kepalaKeluargaId,
-                items: _wargaOptions,
-                icon: Icons.person_rounded,
-                onChanged: (value) {
-                  setState(() {
-                    _kepalaKeluargaId = value;
-                  });
+              const Text(
+                'Kepala Keluarga',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Consumer(
+                builder: (context, ref, child) {
+                  final citizensAsync = ref.watch(citizensStreamProvider);
+                  
+                  return citizensAsync.when(
+                    data: (citizens) {
+                      if (citizens.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Belum ada data warga. Tambahkan warga terlebih dahulu.',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        );
+                      }
+                      
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.border),
+                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.cardBackground,
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: _kepalaKeluargaId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.person_rounded, color: AppColors.primary),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            hintText: 'Pilih Kepala Keluarga',
+                            hintStyle: TextStyle(color: AppColors.textMuted),
+                          ),
+                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          items: citizens.map((citizen) {
+                            return DropdownMenuItem<String>(
+                              value: citizen.documentId,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    citizen.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    'NIK: ${citizen.nik}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _kepalaKeluargaId = value;
+                              final selected = citizens.firstWhere((c) => c.documentId == value);
+                              _kepalaKeluargaNama = selected.name;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Pilih kepala keluarga';
+                            }
+                            return null;
+                          },
+                        ),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (error, _) => Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        border: Border.all(color: AppColors.error),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Error loading warga: $error',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 24),
@@ -343,72 +478,6 @@ class _TambahKeluargaPageState extends State<TambahKeluargaPage> {
             filled: true,
             fillColor: AppColors.cardBackground,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWargaDropdownField({
-    required String label,
-    required String? value,
-    required List<Map<String, String>> items,
-    required IconData icon,
-    required void Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-            color: AppColors.cardBackground,
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            isExpanded: true,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              hintText: 'Pilih Kepala Keluarga',
-              hintStyle: const TextStyle(color: AppColors.textMuted),
-            ),
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-            items: items.map((Map<String, String> item) {
-              return DropdownMenuItem<String>(
-                value: item['id'],
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item['nama']!,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      'NIK: ${item['nik']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-            onChanged: onChanged,
           ),
         ),
       ],

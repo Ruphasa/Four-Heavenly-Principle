@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/models/citizen.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
-class TambahWargaPage extends StatefulWidget {
+class TambahWargaPage extends ConsumerStatefulWidget {
   const TambahWargaPage({super.key});
 
   @override
-  State<TambahWargaPage> createState() => _TambahWargaPageState();
+  ConsumerState<TambahWargaPage> createState() => _TambahWargaPageState();
 }
 
-class _TambahWargaPageState extends State<TambahWargaPage> {
+class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
   final _formKey = GlobalKey<FormState>();
   final _namaController = TextEditingController();
   final _nikController = TextEditingController();
@@ -88,7 +91,7 @@ class _TambahWargaPageState extends State<TambahWargaPage> {
     return '${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}';
   }
 
-  void _simpanData() {
+  Future<void> _simpanData() async {
     if (_formKey.currentState!.validate()) {
       if (_tanggalLahir == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,14 +103,58 @@ class _TambahWargaPageState extends State<TambahWargaPage> {
         return;
       }
 
-      // TODO: Implement save functionality
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data warga berhasil disimpan'),
-          backgroundColor: AppColors.success,
-        ),
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-      Navigator.pop(context);
+
+      try {
+        // Create Citizen object
+        final citizen = Citizen(
+          name: _namaController.text.trim(),
+          nik: _nikController.text.trim(),
+          gender: _jenisKelamin,
+          birthDate: _tanggalLahir!,
+          familyRole: _hubunganKeluarga,
+          maritalStatus: _statusPerkawinan,
+          religion: _agama,
+          education: _pendidikan,
+          occupation: _pekerjaan.isNotEmpty ? _pekerjaan : 'Tidak Bekerja',
+          status: _statusHidup,
+          familyName: '-', // Will be updated when assigned to family
+        );
+
+        // Save to Firestore
+        final repo = ref.read(citizenRepositoryProvider);
+        await repo.create(citizen);
+
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data warga berhasil disimpan ke database'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true); // Return true to indicate success
+      } catch (e) {
+        if (!mounted) return;
+        
+        // Close loading dialog
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
