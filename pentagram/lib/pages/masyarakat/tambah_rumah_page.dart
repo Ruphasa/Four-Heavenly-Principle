@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/house.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/widgets/common/form_text_field.dart';
+import 'package:pentagram/widgets/common/form_dropdown_field.dart';
+import 'package:pentagram/widgets/common/form_section_header.dart';
 
 class TambahRumahPage extends ConsumerStatefulWidget {
   const TambahRumahPage({super.key});
@@ -166,11 +169,12 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
               const SizedBox(height: 24),
 
               // Alamat Section
-              _buildSectionHeader('Alamat Rumah'),
-              _buildTextField(
+              const FormSectionHeader(title: 'Alamat Rumah', icon: Icons.location_on_rounded),
+              const SizedBox(height: 16),
+              FormTextField(
                 controller: _alamatController,
                 label: 'Alamat Lengkap',
-                hint: 'Contoh: Jl. Mawar No. 12',
+                hintText: 'Contoh: Jl. Mawar No. 12',
                 icon: Icons.location_on_rounded,
                 maxLines: 2,
                 validator: (value) {
@@ -184,10 +188,10 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _rtController,
                       label: 'RT',
-                      hint: '00',
+                      hintText: '00',
                       icon: Icons.map_rounded,
                       keyboardType: TextInputType.number,
                       maxLength: 3,
@@ -201,10 +205,10 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _rwController,
                       label: 'RW',
-                      hint: '00',
+                      hintText: '00',
                       icon: Icons.map_rounded,
                       keyboardType: TextInputType.number,
                       maxLength: 3,
@@ -221,8 +225,9 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
               const SizedBox(height: 24),
 
               // Data Rumah Section
-              _buildSectionHeader('Data Rumah'),
-              _buildDropdownField(
+              const FormSectionHeader(title: 'Data Rumah', icon: Icons.home_work_rounded),
+              const SizedBox(height: 16),
+              FormDropdownField(
                 label: 'Status Rumah',
                 value: _statusRumah,
                 items: _statusRumahOptions,
@@ -234,7 +239,7 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Jenis Rumah',
                 value: _jenisRumah,
                 items: _jenisRumahOptions,
@@ -246,7 +251,7 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Status Kepemilikan',
                 value: _statusKepemilikan,
                 items: _statusKepemilikanOptions,
@@ -261,20 +266,20 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _luasTanahController,
                       label: 'Luas Tanah (m²)',
-                      hint: '0',
+                      hintText: '0',
                       icon: Icons.terrain_rounded,
                       keyboardType: TextInputType.number,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _luasBangunanController,
                       label: 'Luas Bangunan (m²)',
-                      hint: '0',
+                      hintText: '0',
                       icon: Icons.apartment_rounded,
                       keyboardType: TextInputType.number,
                     ),
@@ -284,7 +289,8 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
               const SizedBox(height: 24),
 
               // Penghuni Section
-              _buildSectionHeader('Penghuni'),
+              const FormSectionHeader(title: 'Penghuni', icon: Icons.family_restroom_rounded),
+              const SizedBox(height: 16),
               const Text(
                 'Keluarga Penghuni',
                 style: TextStyle(
@@ -382,10 +388,10 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _keteranganController,
                 label: 'Keterangan',
-                hint: 'Keterangan tambahan (opsional)',
+                hintText: 'Keterangan tambahan (opsional)',
                 icon: Icons.note_rounded,
                 maxLines: 3,
               ),
@@ -432,138 +438,6 @@ class _TambahRumahPageState extends ConsumerState<TambahRumahPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    int? maxLength,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textMuted),
-            prefixIcon: Icon(icon, color: AppColors.primary),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            filled: true,
-            fillColor: AppColors.cardBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required IconData icon,
-    required void Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-            color: AppColors.cardBackground,
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            isExpanded: true,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            ),
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-            items: items.map((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
     );
   }
 }

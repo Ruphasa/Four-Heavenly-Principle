@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/citizen.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/widgets/common/form_text_field.dart';
+import 'package:pentagram/widgets/common/form_dropdown_field.dart';
+import 'package:pentagram/widgets/common/form_date_field.dart';
+import 'package:pentagram/widgets/common/form_section_header.dart';
 
 class TambahWargaPage extends ConsumerStatefulWidget {
   const TambahWargaPage({super.key});
@@ -18,12 +22,12 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
   final _tempatLahirController = TextEditingController();
   final _alamatController = TextEditingController();
   final _noTelpController = TextEditingController();
+  final _pekerjaanController = TextEditingController();
   
   DateTime? _tanggalLahir;
   String _jenisKelamin = 'Laki-laki';
   String _statusPerkawinan = 'Belum Kawin';
   String _agama = 'Islam';
-  String _pekerjaan = '';
   String _pendidikan = 'SD';
   String _statusDomisili = 'Tetap';
   String _statusHidup = 'Hidup';
@@ -55,6 +59,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
     _tempatLahirController.dispose();
     _alamatController.dispose();
     _noTelpController.dispose();
+    _pekerjaanController.dispose();
     super.dispose();
   }
 
@@ -84,11 +89,6 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
         _tanggalLahir = picked;
       });
     }
-  }
-
-  String _formatTanggal(DateTime? tanggal) {
-    if (tanggal == null) return 'Pilih Tanggal';
-    return '${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}';
   }
 
   Future<void> _simpanData() async {
@@ -121,7 +121,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
           maritalStatus: _statusPerkawinan,
           religion: _agama,
           education: _pendidikan,
-          occupation: _pekerjaan.isNotEmpty ? _pekerjaan : 'Tidak Bekerja',
+          occupation: _pekerjaanController.text.isNotEmpty ? _pekerjaanController.text.trim() : 'Tidak Bekerja',
           status: _statusHidup,
           familyName: '-', // Will be updated when assigned to family
         );
@@ -176,11 +176,12 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Data Identitas Section
-              _buildSectionHeader('Data Identitas'),
-              _buildTextField(
+              const FormSectionHeader(title: 'Data Identitas', icon: Icons.person_outline_rounded),
+              const SizedBox(height: 16),
+              FormTextField(
                 controller: _namaController,
                 label: 'Nama Lengkap',
-                hint: 'Masukkan nama lengkap',
+                hintText: 'Masukkan nama lengkap',
                 icon: Icons.person_rounded,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -190,13 +191,12 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _nikController,
                 label: 'NIK',
-                hint: 'Masukkan NIK 16 digit',
+                hintText: 'Masukkan NIK 16 digit',
                 icon: Icons.badge_rounded,
                 keyboardType: TextInputType.number,
-                maxLength: 16,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'NIK tidak boleh kosong';
@@ -208,7 +208,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Jenis Kelamin',
                 value: _jenisKelamin,
                 items: _jenisKelaminOptions,
@@ -220,10 +220,10 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _tempatLahirController,
                 label: 'Tempat Lahir',
-                hint: 'Masukkan tempat lahir',
+                hintText: 'Masukkan tempat lahir',
                 icon: Icons.location_city_rounded,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -233,16 +233,18 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDateField(
+              FormDateField(
                 label: 'Tanggal Lahir',
                 value: _tanggalLahir,
+                icon: Icons.cake_rounded,
                 onTap: () => _pilihTanggalLahir(context),
               ),
               const SizedBox(height: 24),
 
               // Data Keluarga Section
-              _buildSectionHeader('Data Keluarga'),
-              _buildDropdownField(
+              const FormSectionHeader(title: 'Data Keluarga', icon: Icons.family_restroom_rounded),
+              const SizedBox(height: 16),
+              FormDropdownField(
                 label: 'Hubungan dalam Keluarga',
                 value: _hubunganKeluarga,
                 items: _hubunganKeluargaOptions,
@@ -254,7 +256,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Status Perkawinan',
                 value: _statusPerkawinan,
                 items: _statusPerkawinanOptions,
@@ -268,8 +270,9 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
               const SizedBox(height: 24),
 
               // Data Lainnya Section
-              _buildSectionHeader('Data Lainnya'),
-              _buildDropdownField(
+              const FormSectionHeader(title: 'Data Lainnya', icon: Icons.info_rounded),
+              const SizedBox(height: 16),
+              FormDropdownField(
                 label: 'Agama',
                 value: _agama,
                 items: _agamaOptions,
@@ -281,7 +284,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Pendidikan Terakhir',
                 value: _pendidikan,
                 items: _pendidikanOptions,
@@ -293,20 +296,17 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: TextEditingController(text: _pekerjaan),
+              FormTextField(
+                controller: _pekerjaanController,
                 label: 'Pekerjaan',
-                hint: 'Masukkan pekerjaan',
+                hintText: 'Masukkan pekerjaan',
                 icon: Icons.work_rounded,
-                onChanged: (value) {
-                  _pekerjaan = value;
-                },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _alamatController,
                 label: 'Alamat',
-                hint: 'Masukkan alamat lengkap',
+                hintText: 'Masukkan alamat lengkap',
                 icon: Icons.home_rounded,
                 maxLines: 3,
                 validator: (value) {
@@ -317,15 +317,15 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _noTelpController,
                 label: 'No. Telepon',
-                hint: 'Masukkan nomor telepon',
+                hintText: 'Masukkan nomor telepon',
                 icon: Icons.phone_rounded,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Status Domisili',
                 value: _statusDomisili,
                 items: _statusDomisiliOptions,
@@ -337,7 +337,7 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildDropdownField(
+              FormDropdownField(
                 label: 'Status Hidup',
                 value: _statusHidup,
                 items: _statusHidupOptions,
@@ -391,186 +391,6 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    int? maxLength,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          validator: validator,
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textMuted),
-            prefixIcon: Icon(icon, color: AppColors.primary),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            filled: true,
-            fillColor: AppColors.cardBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required IconData icon,
-    required void Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-            color: AppColors.cardBackground,
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            isExpanded: true,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: AppColors.primary),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            ),
-            icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-            items: items.map((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
-            }).toList(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required DateTime? value,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(12),
-              color: AppColors.cardBackground,
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _formatTanggal(value),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: value == null ? AppColors.textMuted : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

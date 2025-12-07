@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/family.dart' as models;
 import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/widgets/common/form_text_field.dart';
+import 'package:pentagram/widgets/common/form_section_header.dart';
 
 class TambahKeluargaPage extends ConsumerStatefulWidget {
   const TambahKeluargaPage({super.key});
@@ -160,11 +162,12 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
               const SizedBox(height: 24),
 
               // Data Keluarga Section
-              _buildSectionHeader('Data Keluarga'),
-              _buildTextField(
+              const FormSectionHeader(title: 'Data Keluarga', icon: Icons.family_restroom_rounded),
+              const SizedBox(height: 16),
+              FormTextField(
                 controller: _namaKeluargaController,
                 label: 'Nama Keluarga',
-                hint: 'Contoh: Keluarga Ahmad Subarjo',
+                hintText: 'Contoh: Keluarga Ahmad Subarjo',
                 icon: Icons.family_restroom_rounded,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -174,10 +177,10 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
+              FormTextField(
                 controller: _noKKController,
                 label: 'Nomor Kartu Keluarga (KK)',
-                hint: 'Masukkan nomor KK 16 digit',
+                hintText: 'Masukkan nomor KK 16 digit',
                 icon: Icons.credit_card_rounded,
                 keyboardType: TextInputType.number,
                 maxLength: 16,
@@ -302,11 +305,12 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
               const SizedBox(height: 24),
 
               // Alamat Section
-              _buildSectionHeader('Alamat Keluarga'),
-              _buildTextField(
+              const FormSectionHeader(title: 'Alamat Keluarga', icon: Icons.home_rounded),
+              const SizedBox(height: 16),
+              FormTextField(
                 controller: _alamatController,
                 label: 'Alamat Lengkap',
-                hint: 'Masukkan alamat lengkap',
+                hintText: 'Masukkan alamat lengkap',
                 icon: Icons.home_rounded,
                 maxLines: 3,
                 validator: (value) {
@@ -320,10 +324,10 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _rtController,
                       label: 'RT',
-                      hint: '00',
+                      hintText: '00',
                       icon: Icons.map_rounded,
                       keyboardType: TextInputType.number,
                       maxLength: 3,
@@ -337,10 +341,10 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _buildTextField(
+                    child: FormTextField(
                       controller: _rwController,
                       label: 'RW',
-                      hint: '00',
+                      hintText: '00',
                       icon: Icons.map_rounded,
                       keyboardType: TextInputType.number,
                       maxLength: 3,
@@ -397,90 +401,6 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    int? maxLength,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textMuted),
-            prefixIcon: Icon(icon, color: AppColors.primary),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            filled: true,
-            fillColor: AppColors.cardBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
     );
   }
 }
