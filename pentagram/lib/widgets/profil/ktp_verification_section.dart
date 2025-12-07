@@ -22,11 +22,23 @@ class KtpValidationState {
   final bool isValidated;
   final KtpFraudResult? fraudResult;
 
+  // OCR Results
+  final String? ocrNik;
+  final String? ocrNama;
+  final String? ocrAlamat;
+  final String? ocrTempatLahir;
+  final String? ocrTanggalLahir;
+
   KtpValidationState({
     this.ktpImage,
     this.isValid = false,
     this.isValidated = false,
     this.fraudResult,
+    this.ocrNik,
+    this.ocrNama,
+    this.ocrAlamat,
+    this.ocrTempatLahir,
+    this.ocrTanggalLahir,
   });
 
   KtpValidationState copyWith({
@@ -34,12 +46,22 @@ class KtpValidationState {
     bool? isValid,
     bool? isValidated,
     KtpFraudResult? fraudResult,
+    String? ocrNik,
+    String? ocrNama,
+    String? ocrAlamat,
+    String? ocrTempatLahir,
+    String? ocrTanggalLahir,
   }) {
     return KtpValidationState(
       ktpImage: ktpImage ?? this.ktpImage,
       isValid: isValid ?? this.isValid,
       isValidated: isValidated ?? this.isValidated,
       fraudResult: fraudResult ?? this.fraudResult,
+      ocrNik: ocrNik ?? this.ocrNik,
+      ocrNama: ocrNama ?? this.ocrNama,
+      ocrAlamat: ocrAlamat ?? this.ocrAlamat,
+      ocrTempatLahir: ocrTempatLahir ?? this.ocrTempatLahir,
+      ocrTanggalLahir: ocrTanggalLahir ?? this.ocrTanggalLahir,
     );
   }
 }
@@ -185,7 +207,10 @@ class _KtpVerificationSectionState
                 SizedBox(height: 8),
                 Text(
                   'Mohon tunggu sebentar',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -204,13 +229,19 @@ class _KtpVerificationSectionState
       Navigator.pop(context);
 
       if (result.isValid) {
-        // KTP VALID - simpan ke provider
-        ref.read(ktpValidationProvider.notifier).state =
-            KtpValidationState(
+        // KTP VALID - simpan ke provider dengan mock OCR data
+        // TODO: Integrate real OCR service (Google ML Kit / Tesseract)
+        ref.read(ktpValidationProvider.notifier).state = KtpValidationState(
           ktpImage: imageFile,
           isValid: true,
           isValidated: true,
           fraudResult: result,
+          // Mock OCR data - replace with real OCR later
+          ocrNik: '3201234567890123',
+          ocrNama: 'CONTOH NAMA LENGKAP',
+          ocrAlamat: 'JL. CONTOH NO. 123 RT 01 RW 02',
+          ocrTempatLahir: 'JAKARTA',
+          ocrTanggalLahir: '01-01-1990',
         );
 
         // Tampilkan pesan sukses
@@ -361,9 +392,7 @@ class _KtpVerificationSectionState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('• ', style: TextStyle(fontSize: 13)),
-          Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 13)),
-          ),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
@@ -388,8 +417,7 @@ class _KtpVerificationSectionState
       builder: (context) => DeleteKtpDialog(
         onConfirmDelete: () {
           // Reset validasi KTP
-          ref.read(ktpValidationProvider.notifier).state =
-              KtpValidationState();
+          ref.read(ktpValidationProvider.notifier).state = KtpValidationState();
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

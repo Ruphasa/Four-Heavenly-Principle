@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
-import 'package:pentagram/widgets/profil/ktp_verification_section.dart';
 import 'package:pentagram/widgets/profil/profile_picture_widget.dart';
 import 'package:pentagram/widgets/profil/profile_text_field.dart';
-
-// Import provider dari ktp_verification_section
-export 'package:pentagram/widgets/profil/ktp_verification_section.dart' show ktpValidationProvider;
 
 class EditProfilPage extends ConsumerStatefulWidget {
   const EditProfilPage({super.key});
@@ -178,119 +174,30 @@ class _EditProfilPageState extends ConsumerState<EditProfilPage> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
-
-                // KTP Verification Section
-                _buildSectionTitle('Verifikasi Identitas'),
-                const SizedBox(height: 12),
-                const KtpVerificationSection(),
-
                 const SizedBox(height: 32),
 
                 // Save Button
-                Consumer(
-                  builder: (context, ref, child) {
-                    final ktpValidation = ref.watch(ktpValidationProvider);
-                    final hasKtpImage = ktpValidation.ktpImage != null;
-                    final isKtpValid = ktpValidation.isValid;
-                    final isKtpValidated = ktpValidation.isValidated;
-
-                    // Button hanya bisa diklik jika:
-                    // 1. Tidak ada KTP (belum upload), atau
-                    // 2. Ada KTP dan sudah divalidasi dan hasilnya VALID
-                    final canSave = !hasKtpImage || (isKtpValidated && isKtpValid);
-
-                    return Column(
-                      children: [
-                        // Peringatan jika KTP fraud atau belum divalidasi
-                        if (hasKtpImage && (!isKtpValidated || !isKtpValid)) ...[
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.error.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: AppColors.error,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    !isKtpValidated
-                                        ? 'KTP belum divalidasi. Silakan upload ulang foto KTP.'
-                                        : 'KTP terdeteksi fraud. Anda tidak dapat menyimpan perubahan sampai KTP valid.',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.textPrimary,
-                                      height: 1.4,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: canSave ? _saveProfile : null,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                              disabledBackgroundColor: Colors.grey.shade300,
-                              disabledForegroundColor: Colors.grey.shade600,
-                            ).copyWith(
-                              backgroundColor: MaterialStateProperty.resolveWith(
-                                (states) {
-                                  if (states.contains(MaterialState.disabled)) {
-                                    return Colors.grey.shade300;
-                                  }
-                                  if (states.contains(MaterialState.pressed)) {
-                                    return AppColors.primaryDark;
-                                  }
-                                  return AppColors.primary;
-                                },
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (canSave && hasKtpImage && isKtpValid) ...[
-                                  const Icon(
-                                    Icons.check_circle,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Text(
-                                  canSave
-                                      ? 'Simpan Perubahan'
-                                      : 'Validasi KTP Diperlukan',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      backgroundColor: AppColors.primary,
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Simpan Perubahan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 32),

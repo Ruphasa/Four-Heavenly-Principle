@@ -4,6 +4,7 @@ import 'package:pentagram/pages/login/login_page.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/widgets/profil/ktp_verification_section.dart';
 
 class RegisterForm extends ConsumerStatefulWidget {
   const RegisterForm({super.key});
@@ -21,6 +22,8 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _alamatController = TextEditingController();
+  final _tempatLahirController = TextEditingController();
+  final _tanggalLahirController = TextEditingController();
 
   String? _jenisKelamin;
   String? _rumah;
@@ -50,6 +53,31 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
         );
       }
     });
+
+    // Listen to KTP validation changes for auto-fill
+    ref.listen(ktpValidationProvider, (prev, next) {
+      if (next.isValid && next.isValidated) {
+        // Auto-fill form fields from OCR data
+        if (next.ocrNik != null) _nikController.text = next.ocrNik!;
+        if (next.ocrNama != null) _namaController.text = next.ocrNama!;
+        if (next.ocrAlamat != null) _alamatController.text = next.ocrAlamat!;
+        if (next.ocrTempatLahir != null)
+          _tempatLahirController.text = next.ocrTempatLahir!;
+        if (next.ocrTanggalLahir != null)
+          _tanggalLahirController.text = next.ocrTanggalLahir!;
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Data KTP berhasil diisi otomatis!'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    });
+
     return Container(
       constraints: const BoxConstraints(maxWidth: 600),
       padding: const EdgeInsets.all(32),
@@ -89,8 +117,35 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             const SizedBox(height: 8),
             const Divider(color: AppColors.divider, thickness: 1),
             const SizedBox(height: 16),
+
+            // KTP Scanning Section
+            const Text(
+              'Scan KTP Anda',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Scan KTP untuk mengisi data secara otomatis',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            const KtpVerificationSection(),
+            const SizedBox(height: 20),
+            const Divider(color: AppColors.divider, thickness: 1),
+            const SizedBox(height: 20),
+
             _buildTextField('Nama Lengkap', _namaController),
             _buildTextField('NIK', _nikController),
+            _buildTextField('Tempat Lahir', _tempatLahirController),
+            _buildTextField(
+              'Tanggal Lahir',
+              _tanggalLahirController,
+              hint: 'DD-MM-YYYY',
+            ),
             _buildTextField('Email', _emailController),
             _buildTextField(
               'No Telepon',
@@ -110,12 +165,31 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               items: _listJenisKelamin,
               onChanged: (v) => setState(() => _jenisKelamin = v),
             ),
-            Consumer(builder: (context, ref, _) {
-              final housesAsync = ref.watch(housesStreamProvider);
-              return housesAsync.when(
-                data: (houses) {
-                  _listRumah = houses.map((h) => h.address).toList();
-                  return _buildDropdown(
+            Consumer(
+              builder: (context, ref, _) {
+                final housesAsync = ref.watch(housesStreamProvider);
+                return housesAsync.when(
+                  data: (houses) {
+                    _listRumah = houses.map((h) => h.address).toList();
+                    return _buildDropdown(
+                      label: 'Pilih Rumah yang Sudah Ada',
+                      hint: '-- Pilih Rumah --',
+                      value: _rumah,
+                      items: _listRumah,
+                      onChanged: (v) {
+                        setState(() {
+                          _rumah = v;
+                          if (v != null && v.isNotEmpty)
+                            _alamatController.clear();
+                        });
+                      },
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: LinearProgressIndicator(),
+                  ),
+                  error: (e, _) => _buildDropdown(
                     label: 'Pilih Rumah yang Sudah Ada',
                     hint: '-- Pilih Rumah --',
                     value: _rumah,
@@ -123,29 +197,14 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                     onChanged: (v) {
                       setState(() {
                         _rumah = v;
-                        if (v != null && v.isNotEmpty) _alamatController.clear();
+                        if (v != null && v.isNotEmpty)
+                          _alamatController.clear();
                       });
                     },
-                  );
-                },
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: LinearProgressIndicator(),
-                ),
-                error: (e, _) => _buildDropdown(
-                  label: 'Pilih Rumah yang Sudah Ada',
-                  hint: '-- Pilih Rumah --',
-                  value: _rumah,
-                  items: _listRumah,
-                  onChanged: (v) {
-                    setState(() {
-                      _rumah = v;
-                      if (v != null && v.isNotEmpty) _alamatController.clear();
-                    });
-                  },
-                ),
-              );
-            }),
+                  ),
+                );
+              },
+            ),
             const Text(
               'Kalau tidak ada di daftar, isi alamat rumah di bawah ini',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
@@ -166,11 +225,55 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               onChanged: (v) => setState(() => _statusRumah = v),
             ),
             const SizedBox(height: 16),
-            _buildUploadField(
-              label: 'Foto Identias',
-            ),
+            _buildUploadField(label: 'Foto Identias'),
             const SizedBox(height: 32),
-            _buildRegisterButton(),
+            Consumer(
+              builder: (context, ref, _) {
+                final ktpValidation = ref.watch(ktpValidationProvider);
+                final isKtpValid =
+                    ktpValidation.isValid && ktpValidation.isValidated;
+
+                return Column(
+                  children: [
+                    // Warning jika KTP belum valid
+                    if (!isKtpValid) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: AppColors.error,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Silakan scan KTP Anda terlebih dahulu untuk melanjutkan pendaftaran',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildRegisterButton(canRegister: isKtpValid),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 20),
             _buildLoginLink(context),
           ],
@@ -232,67 +335,63 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     );
   }
 
-Widget _buildDropdown({
-  required String label,
-  required String hint,
-  required String? value,
-  required List<String> items,
-  required void Function(String?) onChanged,
-}) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          isExpanded: true,
-          hint: Text(
-            hint,
-            style: const TextStyle(color: AppColors.textMuted),
-          ),
-          items: items
-              .map((e) => DropdownMenuItem<String>(
-                    value: e,
-                    child: Text(e),
-                  ))
-              .toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.backgroundGrey,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+  Widget _buildDropdown({
+    required String label,
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required void Function(String?) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 2,
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: value,
+            isExpanded: true,
+            hint: Text(
+              hint,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
+            items: items
+                .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
+                .toList(),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.backgroundGrey,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
               ),
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
+            iconEnabledColor: AppColors.primary,
           ),
-          iconEnabledColor: AppColors.primary,
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   Widget _buildUploadField({required String label}) {
     return Container(
@@ -310,24 +409,27 @@ Widget _buildDropdown({
     );
   }
 
-  Widget _buildRegisterButton() {
+  Widget _buildRegisterButton({required bool canRegister}) {
     final loading = ref.watch(registerControllerProvider).loading;
+    final isEnabled = canRegister && !loading;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHoveringButton = true),
       onExit: (_) => setState(() => _isHoveringButton = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         transform: Matrix4.diagonal3Values(
-          _isHoveringButton ? 1.02 : 1.0,
-          _isHoveringButton ? 1.02 : 1.0,
+          _isHoveringButton && isEnabled ? 1.02 : 1.0,
+          _isHoveringButton && isEnabled ? 1.02 : 1.0,
           1.0,
         ),
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            gradient: isEnabled ? AppColors.primaryGradient : null,
+            color: isEnabled ? null : Colors.grey.shade300,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isHoveringButton
+            boxShadow: _isHoveringButton && isEnabled
                 ? [
                     BoxShadow(
                       color: AppColors.primary.withValues(alpha: 0.4),
@@ -338,9 +440,8 @@ Widget _buildDropdown({
                 : null,
           ),
           child: ElevatedButton(
-            onPressed: loading
-                ? null
-                : () async {
+            onPressed: isEnabled
+                ? () async {
                     // Trigger register action
                     await ref
                         .read(registerControllerProvider.notifier)
@@ -355,9 +456,11 @@ Widget _buildDropdown({
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
+                        builder: (context) => const LoginPage(),
+                      ),
                     );
-                  },
+                  }
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -375,12 +478,14 @@ Widget _buildDropdown({
                       valueColor: AlwaysStoppedAnimation(Colors.white),
                     ),
                   )
-                : const Text(
-                    'Buat Akun',
+                : Text(
+                    canRegister ? 'Buat Akun' : 'Scan KTP Terlebih Dahulu',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textOnPrimary,
+                      color: canRegister
+                          ? AppColors.textOnPrimary
+                          : Colors.grey.shade600,
                     ),
                   ),
           ),
