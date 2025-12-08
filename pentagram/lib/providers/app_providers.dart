@@ -4,6 +4,8 @@ export 'activity_broadcast_providers.dart';
 export 'activity_providers.dart';
 export 'broadcast_providers.dart';
 export 'channel_transfer_providers.dart';
+export 'chat_providers.dart';
+export 'current_user_provider.dart';
 export 'dashboard_providers.dart';
 export 'manajemen_pengguna_providers.dart';
 export 'notifikasi_providers.dart';

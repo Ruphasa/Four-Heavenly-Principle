@@ -12,6 +12,7 @@ import 'package:pentagram/models/broadcast_message.dart';
 import 'package:pentagram/models/penerimaan_warga.dart';
 import 'package:pentagram/models/user.dart';
 import 'package:pentagram/models/channel.dart';
+import 'package:pentagram/models/chat_message.dart';
 import 'package:pentagram/repositories/activity_firestore_repository.dart';
 import 'package:pentagram/repositories/activity_log_firestore_repository.dart';
 import 'package:pentagram/repositories/citizen_repository.dart';
@@ -24,6 +25,7 @@ import 'package:pentagram/repositories/broadcast_repository.dart';
 import 'package:pentagram/repositories/penerimaan_warga_repository.dart';
 import 'package:pentagram/repositories/user_repository.dart';
 import 'package:pentagram/repositories/channel_repository.dart';
+import 'package:pentagram/repositories/chat_message_repository.dart';
 
 final firestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
@@ -46,8 +48,9 @@ final activityRepositoryProvider = Provider<ActivityFirestoreRepository>((ref) {
   return ActivityFirestoreRepository(fs);
 });
 
-final activitiesStreamProvider =
-    StreamProvider.autoDispose<List<Activity>>((ref) {
+final activitiesStreamProvider = StreamProvider.autoDispose<List<Activity>>((
+  ref,
+) {
   final repo = ref.watch(activityRepositoryProvider);
   // Order by tanggal (activity date) field that exists in Activity model
   return repo.streamAll(
@@ -56,19 +59,20 @@ final activitiesStreamProvider =
 });
 
 // Activity logs
-final activityLogRepositoryProvider =
-    Provider<ActivityLogFirestoreRepository>((ref) {
+final activityLogRepositoryProvider = Provider<ActivityLogFirestoreRepository>((
+  ref,
+) {
   final fs = ref.watch(firestoreProvider);
   return ActivityLogFirestoreRepository(fs);
 });
 
 final activityLogsStreamProvider =
     StreamProvider.autoDispose<List<ActivityLog>>((ref) {
-  final repo = ref.watch(activityLogRepositoryProvider);
-  return repo.streamAll(
-    where: (query) => query.orderBy('tanggal', descending: true),
-  );
-});
+      final repo = ref.watch(activityLogRepositoryProvider);
+      return repo.streamAll(
+        where: (query) => query.orderBy('tanggal', descending: true),
+      );
+    });
 
 // Transactions
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
@@ -78,12 +82,12 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 
 final transactionsStreamProvider =
     StreamProvider.autoDispose<List<Transaction>>((ref) {
-  final repo = ref.watch(transactionRepositoryProvider);
-  // Order by date field that exists in Transaction model
-  return repo.streamAll(
-    where: (query) => query.orderBy('date', descending: true),
-  );
-});
+      final repo = ref.watch(transactionRepositoryProvider);
+      // Order by date field that exists in Transaction model
+      return repo.streamAll(
+        where: (query) => query.orderBy('date', descending: true),
+      );
+    });
 
 // Population data
 final citizenRepositoryProvider = Provider<CitizenRepository>((ref) {
@@ -116,19 +120,20 @@ final housesStreamProvider = StreamProvider.autoDispose<List<House>>((ref) {
   return repo.streamAll();
 });
 
-final familyMutationRepositoryProvider =
-    Provider<FamilyMutationRepository>((ref) {
+final familyMutationRepositoryProvider = Provider<FamilyMutationRepository>((
+  ref,
+) {
   final fs = ref.watch(firestoreProvider);
   return FamilyMutationRepository(fs);
 });
 
 final familyMutationsStreamProvider =
     StreamProvider.autoDispose<List<FamilyMutation>>((ref) {
-  final repo = ref.watch(familyMutationRepositoryProvider);
-  return repo.streamAll(
-    where: (query) => query.orderBy('date', descending: true),
-  );
-});
+      final repo = ref.watch(familyMutationRepositoryProvider);
+      return repo.streamAll(
+        where: (query) => query.orderBy('date', descending: true),
+      );
+    });
 
 // Broadcast Messages
 final broadcastRepositoryProvider = Provider<BroadcastRepository>((ref) {
@@ -138,26 +143,25 @@ final broadcastRepositoryProvider = Provider<BroadcastRepository>((ref) {
 
 final broadcastMessagesStreamProvider =
     StreamProvider.autoDispose<List<BroadcastMessage>>((ref) {
-  final repo = ref.watch(broadcastRepositoryProvider);
-  return repo.streamAll(
-    where: (query) => query.orderBy('sentDate', descending: true),
-  );
-});
+      final repo = ref.watch(broadcastRepositoryProvider);
+      return repo.streamAll(
+        where: (query) => query.orderBy('sentDate', descending: true),
+      );
+    });
 
 // Penerimaan Warga (Citizen registration/intake)
-final penerimaanWargaRepositoryProvider =
-    Provider<PenerimaanWargaRepository>((ref) {
+final penerimaanWargaRepositoryProvider = Provider<PenerimaanWargaRepository>((
+  ref,
+) {
   final fs = ref.watch(firestoreProvider);
   return PenerimaanWargaRepository(fs);
 });
 
 final penerimaanWargaStreamProvider =
     StreamProvider.autoDispose<List<PenerimaanWarga>>((ref) {
-  final repo = ref.watch(penerimaanWargaRepositoryProvider);
-  return repo.streamAll(
-    where: (q) => q.orderBy('no', descending: false),
-  );
-});
+      final repo = ref.watch(penerimaanWargaRepositoryProvider);
+      return repo.streamAll(where: (q) => q.orderBy('no', descending: false));
+    });
 
 // Users
 final userRepositoryProvider = Provider<UserRepository>((ref) {
@@ -167,9 +171,7 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 
 final usersStreamProvider = StreamProvider.autoDispose<List<AppUser>>((ref) {
   final repo = ref.watch(userRepositoryProvider);
-  return repo.streamAll(
-    where: (q) => q.orderBy('name', descending: false),
-  );
+  return repo.streamAll(where: (q) => q.orderBy('name', descending: false));
 });
 
 // Channels
@@ -178,10 +180,19 @@ final channelRepositoryProvider = Provider<ChannelRepository>((ref) {
   return ChannelRepository(fs);
 });
 
-final channelsStreamProvider =
-    StreamProvider.autoDispose<List<Channel>>((ref) {
+final channelsStreamProvider = StreamProvider.autoDispose<List<Channel>>((ref) {
   final repo = ref.watch(channelRepositoryProvider);
-  return repo.streamAll(
-    where: (q) => q.orderBy('name', descending: false),
-  );
+  return repo.streamAll(where: (q) => q.orderBy('name', descending: false));
 });
+
+// Chat Messages - Group Chat
+final chatMessageRepositoryProvider = Provider<ChatMessageRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return ChatMessageRepository(fs);
+});
+
+final groupChatMessagesStreamProvider =
+    StreamProvider.autoDispose<List<ChatMessage>>((ref) {
+      final repo = ref.watch(chatMessageRepositoryProvider);
+      return repo.streamAll();
+    });
