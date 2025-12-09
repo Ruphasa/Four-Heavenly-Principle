@@ -229,50 +229,188 @@ class _KtpVerificationSectionState
       Navigator.pop(context);
 
       if (result.isValid) {
-        // KTP VALID - simpan ke provider dengan mock OCR data
-        // TODO: Integrate real OCR service (Google ML Kit / Tesseract)
-        ref.read(ktpValidationProvider.notifier).state = KtpValidationState(
-          ktpImage: imageFile,
-          isValid: true,
-          isValidated: true,
-          fraudResult: result,
-          // Mock OCR data - replace with real OCR later
-          ocrNik: '3201234567890123',
-          ocrNama: 'CONTOH NAMA LENGKAP',
-          ocrAlamat: 'JL. CONTOH NO. 123 RT 01 RW 02',
-          ocrTempatLahir: 'JAKARTA',
-          ocrTanggalLahir: '01-01-1990',
+        // KTP VALID - lakukan OCR untuk mendapatkan data
+        // Tampilkan loading OCR
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Membaca data KTP...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Mohon tunggu sebentar',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         );
 
-        // Tampilkan pesan sukses
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        try {
+          // Panggil OCR API dengan detectFraudAndOcr
+          final detectionResult = await _fraudService.detectFraudAndOcr(
+            imageFile,
+          );
+
+          if (!mounted) return;
+
+          // Tutup loading OCR dialog
+          Navigator.pop(context);
+
+          if (detectionResult.isValid && detectionResult.ocrResult != null) {
+            // OCR berhasil - simpan data ke provider
+            final ocrData = detectionResult.ocrResult!;
+
+            // Debug: print available fields
+            ocrData.printAvailableFields();
+
+            ref.read(ktpValidationProvider.notifier).state = KtpValidationState(
+              ktpImage: imageFile,
+              isValid: true,
+              isValidated: true,
+              fraudResult: result,
+              // Ambil data dari OCR dengan fallback
+              ocrNik: ocrData.nik ?? 'Tidak terbaca',
+              ocrNama: ocrData.nama ?? 'Tidak terbaca',
+              ocrAlamat: ocrData.alamat ?? 'Tidak terbaca',
+              ocrTempatLahir: ocrData.tempatLahir ?? 'Tidak terbaca',
+              ocrTanggalLahir: ocrData.tanggalLahir ?? 'Tidak terbaca',
+            );
+
+            // Tampilkan pesan sukses dengan data yang dibaca
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
                     children: [
-                      const Text(
-                        'KTP Valid!',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Tingkat kepercayaan: ${result.validityPercentage}',
-                        style: const TextStyle(fontSize: 12),
+                      const Icon(Icons.check_circle, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'KTP Valid & Data Berhasil Dibaca!',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Nama: ${ocrData.nama ?? 'N/A'}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              'NIK: ${ocrData.nik ?? 'N/A'}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
                 ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+              );
+            }
+          } else {
+            // OCR gagal, tapi KTP valid - gunakan mock data
+            ref.read(ktpValidationProvider.notifier).state = KtpValidationState(
+              ktpImage: imageFile,
+              isValid: true,
+              isValidated: true,
+              fraudResult: result,
+              // Mock OCR data jika API gagal
+              ocrNik: '3201234567890123',
+              ocrNama: 'SILAKAN LENGKAPI DATA',
+              ocrAlamat: 'JL. CONTOH NO. 123 RT 01 RW 02',
+              ocrTempatLahir: 'JAKARTA',
+              ocrTanggalLahir: '01-01-1990',
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'KTP Valid!',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'OCR tidak tersedia, silakan lengkapi data manual',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.primary,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (!mounted) return;
+
+          // Tutup loading OCR dialog
+          Navigator.pop(context);
+
+          // OCR error - tapi KTP tetap valid
+          ref.read(ktpValidationProvider.notifier).state = KtpValidationState(
+            ktpImage: imageFile,
+            isValid: true,
+            isValidated: true,
+            fraudResult: result,
+            // Mock OCR data
+            ocrNik: '3201234567890123',
+            ocrNama: 'SILAKAN LENGKAPI DATA',
+            ocrAlamat: 'JL. CONTOH NO. 123 RT 01 RW 02',
+            ocrTempatLahir: 'JAKARTA',
+            ocrTanggalLahir: '01-01-1990',
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('KTP Valid! Silakan lengkapi data secara manual'),
+                backgroundColor: AppColors.primary,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
       } else {
         // KTP FRAUD - tampilkan dialog error
         _showFraudDialog(result, imageFile);
