@@ -179,48 +179,159 @@ class KtpFraudResult {
 class KtpOcrResult {
   final Map<String, dynamic> data; // Data OCR lengkap dari API
 
-  // Field-field dari OCR API response
-  String? get agama => _getString('Agama') ?? _getString('agama');
-  String? get alamat => _getString('Alamat') ?? _getString('alamat');
+  // Field-field dari OCR API response dengan berbagai variasi key
+  String? get agama =>
+      _getString('Agama') ??
+      _getString('agama') ??
+      data['Agama'] ??
+      data['agama'];
+
+  String? get alamat =>
+      _getString('Alamat') ??
+      _getString('alamat') ??
+      data['Alamat'] ??
+      data['alamat'];
+
   String? get berlakuHingga =>
-      _getString('Berlaku Hingga') ?? _getString('berlaku_hingga');
+      _getString('Berlaku Hingga') ??
+      _getString('berlaku_hingga') ??
+      _getString('Berlaku Hingga') ??
+      data['Berlaku Hingga'] ??
+      data['berlaku_hingga'];
+
   String? get jenisKelamin =>
-      _getString('Jenis Kelamin') ?? _getString('jenis_kelamin');
-  String? get kecamatan => _getString('Kecamatan') ?? _getString('kecamatan');
-  String? get kelDesa => _getString('Kel/Desa') ?? _getString('kel_desa');
+      _getString('Jenis Kelamin') ??
+      _getString('jenis_kelamin') ??
+      data['Jenis Kelamin'] ??
+      data['jenis_kelamin'];
+
+  String? get kecamatan =>
+      _getString('Kecamatan') ??
+      _getString('kecamatan') ??
+      data['Kecamatan'] ??
+      data['kecamatan'];
+
+  String? get kelDesa =>
+      _getString('Kel/Desa') ??
+      _getString('kel_desa') ??
+      data['Kel/Desa'] ??
+      data['kel_desa'];
+
   String? get kewarganegaraan =>
-      _getString('Kewarganegaraan') ?? _getString('kewarganegaraan');
-  String? get nik => _getString('NIK') ?? _getString('nik');
-  String? get nama => _getString('Nama') ?? _getString('nama');
-  String? get pekerjaan => _getString('Pekerjaan') ?? _getString('pekerjaan');
-  String? get rtRw => _getString('RT/Rw') ?? _getString('rt_rw');
+      _getString('Kewarganegaraan') ??
+      _getString('kewarganegaraan') ??
+      data['Kewarganegaraan'] ??
+      data['kewarganegaraan'];
+
+  String? get nik =>
+      _getString('NIK') ??
+      _getString('nik') ??
+      _getString('Nik') ??
+      data['NIK'] ??
+      data['nik'];
+
+  String? get nama =>
+      _getString('Nama') ?? _getString('nama') ?? data['Nama'] ?? data['nama'];
+
+  String? get pekerjaan =>
+      _getString('Pekerjaan') ??
+      _getString('pekerjaan') ??
+      data['Pekerjaan'] ??
+      data['pekerjaan'];
+
+  String? get rtRw =>
+      _getString('RT/Rw') ??
+      _getString('rt_rw') ??
+      _getString('RT/RW') ??
+      data['RT/Rw'] ??
+      data['rt_rw'];
+
   String? get statusPerkawinan =>
-      _getString('Status Perkawinan') ?? _getString('status_perkawinan');
+      _getString('Status Perkawinan') ??
+      _getString('status_perkawinan') ??
+      data['Status Perkawinan'] ??
+      data['status_perkawinan'];
+
   String? get tempatTglLahir =>
-      _getString('Tempat/Tgl Lahir') ?? _getString('tempat_tgl_lahir');
+      _getString('Tempat/Tgl Lahir') ??
+      _getString('tempat_tgl_lahir') ??
+      _getString('Tempat/tgl Lahir') ??
+      data['Tempat/Tgl Lahir'] ??
+      data['tempat_tgl_lahir'];
 
   // Legacy field names untuk backward compatibility
-  String? get tempatLahir => tempatTglLahir?.split('/').first;
-  String? get tanggalLahir => tempatTglLahir?.split('/').last;
-  String? get provinsi => _getString('Provinsi') ?? _getString('provinsi');
+  String? get tempatLahir {
+    // Coba split dari tempatTglLahir dulu
+    if (tempatTglLahir != null && tempatTglLahir!.contains('/')) {
+      return tempatTglLahir!.split('/').first;
+    }
+    // Fallback ke field lain jika ada
+    return _getString('Tempat Lahir') ??
+        _getString('tempat_lahir') ??
+        data['Tempat Lahir'] ??
+        data['tempat_lahir'];
+  }
+
+  String? get tanggalLahir {
+    // Coba split dari tempatTglLahir dulu
+    if (tempatTglLahir != null && tempatTglLahir!.contains('/')) {
+      return tempatTglLahir!.split('/').last;
+    }
+    // Fallback ke field lain jika ada
+    return _getString('Tanggal Lahir') ??
+        _getString('tanggal_lahir') ??
+        data['Tanggal Lahir'] ??
+        data['tanggal_lahir'];
+  }
+
+  String? get provinsi =>
+      _getString('Provinsi') ??
+      _getString('provinsi') ??
+      data['Provinsi'] ??
+      data['provinsi'];
+
   String? get kotaKab =>
-      _getString('Kota/Kab') ?? _getString('kota_kab') ?? kelDesa;
+      _getString('Kota/Kab') ??
+      _getString('kota_kab') ??
+      _getString('Kota Kab') ??
+      kelDesa ??
+      data['Kota/Kab'] ??
+      data['kota_kab'];
+
   String? get statusRumah =>
-      _getString('Status Rumah') ?? _getString('status_rumah');
+      _getString('Status Rumah') ??
+      _getString('status_rumah') ??
+      data['Status Rumah'] ??
+      data['status_rumah'];
 
   KtpOcrResult({required this.data});
 
   /// Helper method untuk get string value dengan case-insensitive matching
   String? _getString(String key) {
+    // Coba cari key dengan exact match dulu
     if (data.containsKey(key)) {
       final value = data[key];
-      if (value is String &&
-          value.isNotEmpty &&
-          value != 'N/A' &&
-          value != '-') {
-        return value;
+      if (value != null &&
+          value.toString().isNotEmpty &&
+          value.toString() != 'N/A' &&
+          value.toString() != '-') {
+        return value.toString();
       }
     }
+
+    // Jika tidak ditemukan, coba cari dengan case-insensitive
+    for (final mapKey in data.keys) {
+      if (mapKey.toLowerCase() == key.toLowerCase()) {
+        final value = data[mapKey];
+        if (value != null &&
+            value.toString().isNotEmpty &&
+            value.toString() != 'N/A' &&
+            value.toString() != '-') {
+          return value.toString();
+        }
+      }
+    }
+
     return null;
   }
 
