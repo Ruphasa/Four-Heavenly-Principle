@@ -42,6 +42,9 @@ class _NotifikasiState extends ConsumerState<Notifikasi> {
     final messageText = _messageController.text.trim();
     if (messageText.isEmpty) return;
 
+    // Clear field immediately for better UX
+    _messageController.clear();
+
     try {
       final currentUserId = await ref.read(currentUserIdProvider.future);
       final currentUserName = await ref.read(currentUserNameProvider.future);
@@ -67,7 +70,6 @@ class _NotifikasiState extends ConsumerState<Notifikasi> {
       final repository = ref.read(chatMessageRepositoryProvider);
       await repository.create(newMessage);
 
-      _messageController.clear();
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
