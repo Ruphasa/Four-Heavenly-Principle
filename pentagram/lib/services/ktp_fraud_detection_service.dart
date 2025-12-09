@@ -214,7 +214,10 @@ class KtpOcrResult {
   String? _getString(String key) {
     if (data.containsKey(key)) {
       final value = data[key];
-      if (value is String && value.isNotEmpty && value != 'N/A' && value != '-') {
+      if (value is String &&
+          value.isNotEmpty &&
+          value != 'N/A' &&
+          value != '-') {
         return value;
       }
     }
