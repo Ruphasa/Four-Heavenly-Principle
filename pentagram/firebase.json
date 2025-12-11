@@ -1,1 +1,63 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"gen-lang-client-0559167490","appId":"1:389190829565:android:9e53265a8df31008e84594","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"gen-lang-client-0559167490","configurations":{"android":"1:389190829565:android:9e53265a8df31008e84594","ios":"1:389190829565:ios:78f649931da8b945e84594","macos":"1:389190829565:ios:78f649931da8b945e84594","web":"1:389190829565:web:7fb480c2cc7ae51be84594","windows":"1:389190829565:web:8bd06c0bc42952b6e84594"}}}}},"hosting":{"source":".","ignore":["firebase.json","**/.*","**/node_modules/**"],"frameworksBackend":{"region":"asia-east1"}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "gen-lang-client-0559167490",
+          "appId": "1:389190829565:android:9e53265a8df31008e84594",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "gen-lang-client-0559167490",
+          "configurations": {
+            "android": "1:389190829565:android:9e53265a8df31008e84594",
+            "ios": "1:389190829565:ios:78f649931da8b945e84594",
+            "macos": "1:389190829565:ios:78f649931da8b945e84594",
+            "web": "1:389190829565:web:7fb480c2cc7ae51be84594",
+            "windows": "1:389190829565:web:8bd06c0bc42952b6e84594"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "asia-east1"
+    }
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "apphosting": [
+    {
+      "backendId": "backend",
+      "rootDir": "pentagram",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    },
+    {
+      "backendId": "backends",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "functions"
+      ]
+    }
+  ]
+}
