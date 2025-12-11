@@ -110,4 +110,23 @@ class FCMNotificationService {
       rethrow;
     }
   }
+
+  /// Update user's FCM token (based on users collection)
+  Future<void> updateUserFCMToken(String userId, String fcmToken) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'fcmToken': fcmToken,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (kDebugMode) {
+        print('FCM token updated for user: $userId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating FCM token for user: $e');
+      }
+      rethrow;
+    }
+  }
 }

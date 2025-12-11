@@ -6,6 +6,7 @@ import 'package:pentagram/pages/login/login_page.dart';
 import 'package:pentagram/pages/main_page.dart';
 import 'package:pentagram/providers/auth_providers.dart';
 import 'package:pentagram/providers/fcm_providers.dart';
+import 'package:pentagram/providers/current_user_provider.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -101,6 +102,22 @@ class _AuthCheckerState extends ConsumerState<AuthChecker> {
     final fcmService = ref.read(fcmServiceProvider);
     await fcmService.initialize();
     await fcmService.subscribeToTopic('pentagramMessageToken');
+
+    // Simpan FCM token ke dokumen users/{userId} untuk user yang sudah login
+    try {
+      final token = await fcmService.getToken();
+      if (token != null && token.isNotEmpty) {
+        final userId = await ref.read(currentUserIdProvider.future);
+        if (userId != null && userId.isNotEmpty) {
+          final fcmNotificationService = ref.read(fcmNotificationServiceProvider);
+          await fcmNotificationService.updateUserFCMToken(userId, token);
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error updating user FCM token: $e');
+      }
+    }
 
     // Tidak perlu navigate, widget akan rebuild otomatis karena state berubah
   }
