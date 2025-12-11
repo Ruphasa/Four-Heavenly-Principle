@@ -181,18 +181,66 @@ class Seeders {
     final batch = firestore.batch();
     final refs = <DocumentReference>[];
     
-    // User IDs untuk citizens (bukan admin)
-    final userIds = ['user_andi', 'user_rina', 'user_budi', 'user_dewi'];
-    
-    for (var i = 0; i < userIds.length; i++) {
-      final ref = col.doc('citizen${i + 1}');
-      final familyRef = families[i % families.length];
-      final houseRef = houses[i % houses.length];
-      final familyRole = i % 2 == 0 ? 'Kepala Keluarga' : (i % 3 == 0 ? 'Anak' : 'Istri');
-      final gender = i % 2 == 0 ? 'Laki-laki' : 'Perempuan';
-      final birthDate = DateTime(1990 + i, (i % 12) + 1, (i % 28) + 1);
+    // families[0] -> Keluarga Wijaya, families[1] -> Keluarga Santoso
+    // houses[0] -> Jl. Merdeka No. 10, houses[1] -> Jl. Mawar No. 5
+
+    final citizensSeed = [
+      {
+        'id': 'citizen1',
+        'userId': 'user_andi',
+        'name': 'Andi Wijaya',
+        'family': families[0],
+        'house': houses[0],
+        'familyRole': 'Kepala Keluarga',
+        'gender': 'Laki-laki',
+        'birthDate': DateTime(1990, 1, 10),
+      },
+      {
+        'id': 'citizen2',
+        'userId': 'user_rina',
+        'name': 'Rina Wijaya',
+        'family': families[0],
+        'house': houses[0],
+        'familyRole': 'Istri',
+        'gender': 'Perempuan',
+        'birthDate': DateTime(1992, 5, 20),
+      },
+      {
+        'id': 'citizen3',
+        'userId': 'user_budi',
+        'name': 'Budi Santoso',
+        'family': families[1],
+        'house': houses[1],
+        'familyRole': 'Kepala Keluarga',
+        'gender': 'Laki-laki',
+        'birthDate': DateTime(1988, 3, 15),
+      },
+      {
+        'id': 'citizen4',
+        'userId': 'user_dewi',
+        'name': 'Dewi Santoso',
+        'family': families[1],
+        'house': houses[1],
+        'familyRole': 'Istri',
+        'gender': 'Perempuan',
+        'birthDate': DateTime(1991, 8, 5),
+      },
+    ];
+
+    for (var i = 0; i < citizensSeed.length; i++) {
+      final c = citizensSeed[i];
+      final ref = col.doc(c['id'] as String);
+      final familyRef = c['family'] as DocumentReference;
+      final houseRef = c['house'] as DocumentReference;
+      final familyRole = c['familyRole'] as String;
+      final gender = c['gender'] as String;
+      final birthDate = c['birthDate'] as DateTime;
+      final name = c['name'] as String;
+      final userId = c['userId'] as String;
+
       batch.set(ref, {
-        'userId': userIds[i], // Reference to user account
+        'userId': userId,
+        'name': name,
         'nik': '31740${1000 + i}',
         'familyId': familyRef.id,
         'houseId': houseRef.id,
@@ -204,7 +252,9 @@ class Seeders {
         'religion': 'Islam',
         'education': 'SMA/SMK',
         'occupation': familyRole == 'Istri' ? 'Ibu Rumah Tangga' : 'Wiraswasta',
-        'familyName': (i < 2) ? 'Keluarga Wijaya' : 'Keluarga Santoso',
+        'familyName': familyRef.id == families[0].id
+            ? 'Keluarga Wijaya'
+            : 'Keluarga Santoso',
         'createdAt': FieldValue.serverTimestamp(),
       });
       refs.add(ref);
@@ -228,12 +278,19 @@ class Seeders {
     for (final f in families) {
       final list = byFamily[f.id] ?? [];
       if (list.isNotEmpty) {
-        // Prefer male citizen as head (gender == 'Laki-laki')
-        final male = list.firstWhere(
-          (e) => (e['data'] as Map<String, dynamic>)['gender'] == 'Laki-laki',
-          orElse: () => list.first,
-        );
-        final headRef = male['ref'] as DocumentReference;
+        // Hanya yang memiliki role 'Kepala Keluarga' yang boleh menjadi kepala keluarga
+        final kkCandidates = list.where((e) {
+          final data = e['data'] as Map<String, dynamic>;
+          return (data['familyRole'] as String?) == 'Kepala Keluarga';
+        }).toList();
+
+        if (kkCandidates.isEmpty) {
+          // Tidak ada warga ber-role Kepala Keluarga di keluarga ini, biarkan tanpa headCitizenId
+          continue;
+        }
+
+        final head = kkCandidates.first;
+        final headRef = head['ref'] as DocumentReference;
         batch.update(f, {'headCitizenId': headRef.id});
       }
     }
@@ -553,6 +610,14 @@ class Seeders {
       final snap = await c.get();
       citizensData[c.id] = (snap.data() as Map<String, dynamic>);
     }
+    // Build lookup for familyId -> familyName
+    final familiesCol = firestore.collection('families');
+    final familiesSnap = await familiesCol.get();
+    final familyNameById = <String, String>{};
+    for (final doc in familiesSnap.docs) {
+      final data = doc.data();
+      familyNameById[doc.id] = (data['name'] as String?) ?? '-';
+    }
     final occupants = <String, List<Map<String, dynamic>>>{};
     for (final c in citizensData.values) {
       final hid = c['houseId'] as String?;
@@ -570,11 +635,21 @@ class Seeders {
           break;
         }
       }
-      if (headName == '-' && occ.isNotEmpty) headName = (occ.first['name'] as String?) ?? '-';
+      if (headName == '-' && occ.isNotEmpty) {
+        headName = (occ.first['name'] as String?) ?? '-';
+      }
+      // Jika tidak ada Kepala Keluarga tapi ada penghuni, tetap isi familyId dari penghuni pertama
+      if (headFamilyId == null && occ.isNotEmpty) {
+        headFamilyId = occ.first['familyId'] as String?;
+      }
+      final familyName = headFamilyId != null
+          ? (familyNameById[headFamilyId] ?? '-')
+          : null;
       batch.update(h, {
         'headName': headName,
         'status': occ.isEmpty ? 'Kosong' : 'Dihuni',
         if (headFamilyId != null) 'familyId': headFamilyId,
+        if (familyName != null) 'familyName': familyName,
       });
     }
     await batch.commit();

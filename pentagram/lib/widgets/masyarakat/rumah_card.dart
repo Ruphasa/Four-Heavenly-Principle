@@ -6,7 +6,7 @@ class RumahCard extends StatelessWidget {
   final String alamat;
   final String rt;
   final String rw;
-  final String kepalaKeluarga;
+  final String namaKeluarga;
   final String status;
   final Color statusColor;
 
@@ -15,7 +15,7 @@ class RumahCard extends StatelessWidget {
     required this.alamat,
     required this.rt,
     required this.rw,
-    required this.kepalaKeluarga,
+    required this.namaKeluarga,
     required this.status,
     required this.statusColor,
   });
@@ -115,7 +115,11 @@ class RumahCard extends StatelessWidget {
               SizedBox(width: responsive.spacing(6)),
               Expanded(
                 child: Text(
-                  kepalaKeluarga == '-' ? 'Tidak ada penghuni' : kepalaKeluarga,
+                  namaKeluarga == '-' || namaKeluarga.isEmpty
+                      ? 'Tidak ada keluarga terdaftar'
+                      : (namaKeluarga.toLowerCase().startsWith('keluarga ')
+                          ? namaKeluarga
+                          : 'Keluarga $namaKeluarga'),
                   style: TextStyle(
                     fontSize: responsive.fontSize(13),
                     color: AppColors.textSecondary,
@@ -224,8 +228,12 @@ class RumahCard extends StatelessWidget {
                     ),
                     SizedBox(height: responsive.spacing(16)),
                     _buildDetailRow(
-                      'Kepala Keluarga',
-                      kepalaKeluarga == '-' ? 'Tidak ada penghuni' : kepalaKeluarga,
+                      'Nama Keluarga',
+                      namaKeluarga == '-' || namaKeluarga.isEmpty
+                        ? 'Tidak ada keluarga terdaftar'
+                        : (namaKeluarga.toLowerCase().startsWith('keluarga ')
+                          ? namaKeluarga
+                          : 'Keluarga $namaKeluarga'),
                       Icons.person_rounded,
                       responsive,
                     ),

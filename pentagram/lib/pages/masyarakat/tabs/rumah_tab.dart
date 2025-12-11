@@ -10,6 +10,14 @@ class RumahTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final housesAsync = ref.watch(housesStreamProvider);
+    final familiesAsync = ref.watch(familiesStreamProvider);
+
+    // Build a lookup map familyId -> family name for display.
+    final families = familiesAsync.asData?.value ?? const [];
+    final familyNameById = <String, String>{
+      for (final family in families)
+        if (family.documentId != null) family.documentId!: family.name,
+    };
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
@@ -24,11 +32,14 @@ class RumahTab extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (context, index) {
               final house = houses[index];
+              final namaKeluarga = house.familyId != null
+                  ? (familyNameById[house.familyId] ?? house.familyName ?? '-')
+                  : (house.familyName ?? '-');
               return RumahCard(
                 alamat: house.address,
                 rt: house.rt,
                 rw: house.rw,
-                kepalaKeluarga: house.headName,
+                namaKeluarga: namaKeluarga,
                 status: house.status,
                 statusColor: _statusColor(house.status),
               );
