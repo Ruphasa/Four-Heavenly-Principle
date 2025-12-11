@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/providers/current_user_provider.dart';
+import 'package:pentagram/providers/fcm_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/chat/chat_bubble.dart';
 import 'package:pentagram/models/chat_message.dart';
@@ -69,6 +70,16 @@ class _NotifikasiState extends ConsumerState<Notifikasi> {
 
       final repository = ref.read(chatMessageRepositoryProvider);
       await repository.create(newMessage);
+
+      // Queue FCM notification to all logged-in users via topic.
+      // Pengguna yang sedang membuka halaman chat tetap tidak akan
+      // melihat notifikasi sistem karena aplikasi sedang foreground.
+      final fcmNotificationService = ref.read(fcmNotificationServiceProvider);
+      await fcmNotificationService.sendBroadcastNotification(
+        title: 'Pesan baru di grup chat',
+        message: messageText,
+        topic: 'pentagramMessageToken',
+      );
 
       _scrollToBottom();
     } catch (e) {
