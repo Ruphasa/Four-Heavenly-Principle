@@ -18,21 +18,14 @@ class FCMService {
       sound: true,
     );
 
-    if (kDebugMode) {
-      print('User granted permission: ${settings.authorizationStatus}');
-    }
+    // User granted permission logging removed
 
     // Get FCM token
     String? token = await _firebaseMessaging.getToken();
-    if (kDebugMode) {
-      print('FCM Token: $token');
-    }
+    // FCM Token logging removed
 
     // Handle token refresh
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
-      if (kDebugMode) {
-        print('FCM Token refreshed: $newToken');
-      }
       // TODO: Send new token to server if needed
     });
 
@@ -55,20 +48,13 @@ class FCMService {
 
   /// Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
-    if (kDebugMode) {
-      print('Foreground message received: ${message.messageId}');
-      print('Notification: ${message.notification?.title}');
-      print('Data: ${message.data}');
-    }
+    // Foreground message logging removed
     // Notification will be shown automatically by FCM
   }
 
   /// Handle notification tap
   void _handleMessageOpenedApp(RemoteMessage message) {
-    if (kDebugMode) {
-      print('Message clicked: ${message.messageId}');
-      print('Data: ${message.data}');
-    }
+    // Message clicked logging removed
     // TODO: Navigate to specific screen based on message data
   }
 
@@ -80,34 +66,24 @@ class FCMService {
   /// Subscribe to topic
   Future<void> subscribeToTopic(String topic) async {
     await _firebaseMessaging.subscribeToTopic(topic);
-    if (kDebugMode) {
-      print('Subscribed to topic: $topic');
-    }
+    // Subscribed to topic logging removed
   }
 
   /// Unsubscribe from topic
   Future<void> unsubscribeFromTopic(String topic) async {
     await _firebaseMessaging.unsubscribeFromTopic(topic);
-    if (kDebugMode) {
-      print('Unsubscribed from topic: $topic');
-    }
+    // Unsubscribed from topic logging removed
   }
 
   /// Delete FCM token
   Future<void> deleteToken() async {
     await _firebaseMessaging.deleteToken();
-    if (kDebugMode) {
-      print('FCM token deleted');
-    }
+    // FCM token deleted logging removed
   }
 }
 
 /// Top-level function to handle background messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (kDebugMode) {
-    print('Background message received: ${message.messageId}');
-    print('Notification: ${message.notification?.title}');
-    print('Data: ${message.data}');
-  }
+  // Background message handler without debug logging
 }

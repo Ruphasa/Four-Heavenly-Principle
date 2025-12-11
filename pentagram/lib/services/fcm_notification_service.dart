@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 /// Service for sending FCM notifications
 /// This service integrates with Firebase Cloud Messaging to send push notifications
@@ -49,14 +48,8 @@ class FCMNotificationService {
           'processed': false,
         });
 
-        if (kDebugMode) {
-          print('Notification queued for citizen: $citizenId');
-        }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error sending pesan notification: $e');
-      }
       rethrow;
     }
   }
@@ -81,13 +74,7 @@ class FCMNotificationService {
         'processed': false,
       });
 
-      if (kDebugMode) {
-        print('Broadcast notification queued for topic: $topic');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error sending broadcast notification: $e');
-      }
       rethrow;
     }
   }
@@ -100,13 +87,7 @@ class FCMNotificationService {
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
       });
 
-      if (kDebugMode) {
-        print('FCM token updated for citizen: $citizenId');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error updating FCM token: $e');
-      }
       rethrow;
     }
   }
@@ -119,13 +100,7 @@ class FCMNotificationService {
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
       });
 
-      if (kDebugMode) {
-        print('FCM token updated for user: $userId');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error updating FCM token for user: $e');
-      }
       rethrow;
     }
   }

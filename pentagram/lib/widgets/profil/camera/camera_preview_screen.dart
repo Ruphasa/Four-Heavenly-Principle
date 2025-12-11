@@ -45,7 +45,7 @@ class _CameraPreviewScreenState extends State<CameraPreviewScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error toggling flash: $e');
+      // Ignore flash toggle errors to avoid crashing the preview
     }
   }
 

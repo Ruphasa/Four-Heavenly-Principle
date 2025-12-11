@@ -14,22 +14,11 @@ class KtpFraudDetectionService {
       // Step 1: Deteksi Fraud
       final fraudResult = await _detectFraud(ktpImage);
 
-      print('=== Fraud Detection Result ===');
-      print('Label: ${fraudResult.label}');
-      print('Is Valid: ${fraudResult.isValid}');
-      print('Validity: ${fraudResult.validityPercentage}');
-      print('==============================');
-
       // Step 2: Jika KTP valid, lakukan OCR
       KtpOcrResult? ocrResult;
       if (fraudResult.isValid) {
-        print('KTP valid, melakukan OCR...');
         ocrResult = await _performOcr(ktpImage);
-        print('=== OCR Result ===');
-        print('OCR Data: ${ocrResult.data}');
-        print('==================');
       } else {
-        print('KTP tidak valid, melewati OCR');
       }
 
       return KtpDetectionResult(
@@ -65,24 +54,11 @@ class KtpFraudDetectionService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        // Debug: Print response dari API
-        print('=== Fraud Detection API Response ===');
-        print('Raw response: ${response.body}');
-        print('Label: ${data['label']}');
-        print('p_valid: ${data['p_valid']}');
-        print('p_fraud: ${data['p_fraud']}');
-        print('threshold: ${data['threshold']}');
-        print('=====================================');
-
         final pValid = (data['p_valid'] as num).toDouble();
         final threshold = (data['threshold'] as num).toDouble();
 
         // Validasi berdasarkan probabilitas
         final isActuallyValid = pValid >= threshold;
-
-        print(
-          'Calculated isValid: $isActuallyValid (pValid: $pValid >= threshold: $threshold)',
-        );
 
         return KtpFraudResult(
           label: data['label'] as String,
@@ -124,10 +100,6 @@ class KtpFraudDetectionService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-
-        print('=== OCR API Response ===');
-        print('Raw response: ${response.body}');
-        print('========================');
 
         return KtpOcrResult.fromJson(data);
       } else {

@@ -129,10 +129,6 @@ class _KtpCameraPageState extends State<KtpCameraPage>
 
       if (originalImage == null) return null;
 
-      debugPrint('=== Crop Debug ===');
-      debugPrint('Original image: ${originalImage.width}x${originalImage.height}');
-      debugPrint('Screen size: ${screenSize.width}x${screenSize.height}');
-
       final imageWidth = originalImage.width;
       final imageHeight = originalImage.height;
 
@@ -145,20 +141,16 @@ class _KtpCameraPageState extends State<KtpCameraPage>
       final frameWidth = (imageWidth * 0.55).toInt();
       final frameHeight = (frameWidth / 1.59).toInt(); // Maintain KTP ratio
 
-      debugPrint('Frame size: ${frameWidth}x$frameHeight (ratio: ${(frameWidth/frameHeight).toStringAsFixed(2)})');
 
       // Crop dari center
       final cropX = ((imageWidth - frameWidth) / 2).toInt();
       final cropY = ((imageHeight - frameHeight) / 2).toInt();
 
-      debugPrint('Crop position: x=$cropX, y=$cropY');
-      debugPrint('Crop size: ${frameWidth}x$frameHeight');
 
       // Validasi crop coordinates
-      if (cropX < 0 || cropY < 0 || 
+        if (cropX < 0 || cropY < 0 || 
           cropX + frameWidth > imageWidth || 
           cropY + frameHeight > imageHeight) {
-        debugPrint('Invalid crop coordinates, adjusting...');
         // Fallback: gunakan maksimal crop yang mungkin
         final maxWidth = imageWidth;
         final maxHeight = (maxWidth / 1.59).toInt();
@@ -191,8 +183,6 @@ class _KtpCameraPageState extends State<KtpCameraPage>
         height: frameHeight,
       );
 
-      debugPrint('Cropped image: ${croppedImage.width}x${croppedImage.height}');
-      debugPrint('==================');
 
       // Simpan cropped image
       final croppedPath = imagePath.replaceAll('.jpg', '_cropped.jpg');
@@ -201,7 +191,6 @@ class _KtpCameraPageState extends State<KtpCameraPage>
 
       return croppedFile;
     } catch (e) {
-      debugPrint('Error cropping image: $e');
       return null;
     }
   }
