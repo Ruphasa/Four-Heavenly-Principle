@@ -55,8 +55,8 @@ class AgeGroupDistributionChart extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
+          AspectRatio(
+            aspectRatio: 1.6,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,

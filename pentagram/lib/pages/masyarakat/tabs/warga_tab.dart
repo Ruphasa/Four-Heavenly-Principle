@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pentagram/models/citizen.dart';
+import 'package:pentagram/models/citizen_with_user.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/masyarakat/masyarakat_filter_chip.dart';
@@ -25,7 +25,7 @@ class _WargaTabState extends ConsumerState<WargaTab> {
 
   @override
   Widget build(BuildContext context) {
-    final citizensAsync = ref.watch(citizensStreamProvider);
+    final citizensAsync = ref.watch(citizensWithUserStreamProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 80),
@@ -99,8 +99,8 @@ class _WargaTabState extends ConsumerState<WargaTab> {
 
           // Warga List
           citizensAsync.when(
-            data: (citizens) {
-              final filtered = _filterCitizens(citizens);
+            data: (citizensWithUser) {
+              final filtered = _filterCitizens(citizensWithUser);
               if (filtered.isEmpty) {
                 return _buildEmptyState();
               }
@@ -109,13 +109,13 @@ class _WargaTabState extends ConsumerState<WargaTab> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-                  final citizen = filtered[index];
+                  final cw = filtered[index];
                   return WargaCard(
-                    name: citizen.name,
-                    nik: citizen.nik,
-                    role: citizen.familyRole,
-                    status: citizen.status,
-                    statusColor: _statusColor(citizen.status),
+                    name: cw.name,
+                    nik: cw.nik,
+                    role: cw.familyRole,
+                    status: cw.status,
+                    statusColor: _statusColor(cw.status),
                   );
                 },
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -133,17 +133,17 @@ class _WargaTabState extends ConsumerState<WargaTab> {
     );
   }
 
-  List<Citizen> _filterCitizens(List<Citizen> citizens) {
+  List<CitizenWithUser> _filterCitizens(List<CitizenWithUser> citizensWithUser) {
     final search = _searchController.text.trim().toLowerCase();
-    return citizens.where((citizen) {
+    return citizensWithUser.where((cw) {
       final matchesSearch = search.isEmpty ||
-          citizen.name.toLowerCase().contains(search) ||
-          citizen.nik.toLowerCase().contains(search);
+          cw.name.toLowerCase().contains(search) ||
+          cw.nik.toLowerCase().contains(search);
 
       final matchesFilter = switch (_selectedFilter) {
-        'Kepala Keluarga' => citizen.familyRole.toLowerCase().contains('kepala'),
-        'Aktif' => citizen.status.toLowerCase() == 'aktif',
-        'Tidak Aktif' => citizen.status.toLowerCase() != 'aktif',
+        'Kepala Keluarga' => cw.familyRole.toLowerCase().contains('kepala'),
+        'Aktif' => cw.status.toLowerCase() == 'aktif',
+        'Tidak Aktif' => cw.status.toLowerCase() != 'aktif',
         _ => true,
       };
 

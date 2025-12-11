@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/citizen.dart';
+import 'package:pentagram/models/user.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/widgets/common/form_text_field.dart';
 import 'package:pentagram/widgets/common/form_dropdown_field.dart';
@@ -111,9 +112,20 @@ class _TambahWargaPageState extends ConsumerState<TambahWargaPage> {
       );
 
       try {
-        // Create Citizen object
+        // Create User first
+        final userName = _namaController.text.trim();
+        final user = AppUser(
+          name: userName,
+          email: '', // Will be set when user logs in
+          status: 'Disetujui',
+        );
+        
+        final userRepo = ref.read(userRepositoryProvider);
+        final userId = await userRepo.create(user);
+
+        // Create Citizen object with userId reference
         final citizen = Citizen(
-          name: _namaController.text.trim(),
+          userId: userId,
           nik: _nikController.text.trim(),
           gender: _jenisKelamin,
           birthDate: _tanggalLahir!,

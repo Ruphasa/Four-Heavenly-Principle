@@ -4,6 +4,7 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/responsive_helper.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/providers/auth_providers.dart';
+import 'package:pentagram/providers/current_user_provider.dart';
 import 'package:pentagram/pages/login/login_page.dart';
 import 'package:pentagram/pages/profil/edit_profil_page.dart';
 import 'package:pentagram/widgets/profil/profile_header.dart';
@@ -107,6 +108,9 @@ class ProfilPage extends ConsumerWidget {
       }
     });
 
+    final asyncUser = ref.watch(currentAppUserProvider);
+    final asyncUserName = ref.watch(currentUserNameProvider);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundGrey,
       appBar: AppBar(
@@ -126,19 +130,34 @@ class ProfilPage extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: ProfileHeader(
-                name: 'Nyi Roro Lor',
-                role: 'Administrator',
-                imagePath: 'assets/images/profile.png',
-                isVerified: true,
+      body: asyncUser.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+            ],
+          ),
+        ),
+        data: (user) => SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              asyncUserName.when(
+                loading: () => const CircularProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (name) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: ProfileHeader(
+                    name: user?.name ?? name,
+                    role: user?.status ?? 'User',
+                    imagePath: 'assets/images/profile.png',
+                  ),
+                ),
               ),
-            ),
             const SizedBox(height: 24),
             _buildActionButtons(context),
             const SizedBox(height: 24),
@@ -206,6 +225,7 @@ class ProfilPage extends ConsumerWidget {
             const SizedBox(height: 24),
           ],
         ),
+      ),
       ),
     );
   }

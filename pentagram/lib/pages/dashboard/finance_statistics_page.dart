@@ -5,7 +5,9 @@ import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/finance_calculator.dart';
 import 'package:pentagram/widgets/dashboard/finance_stat_card.dart';
-import 'package:pentagram/widgets/dashboard/expense_distribution_bar.dart';
+import 'package:pentagram/widgets/dashboard/income_expense_bar_chart.dart';
+import 'package:pentagram/widgets/dashboard/expense_category_stacked_bar.dart';
+import 'package:pentagram/widgets/dashboard/finance_trend_chart.dart';
 
 class FinanceStatisticsPage extends ConsumerStatefulWidget {
   const FinanceStatisticsPage({super.key});
@@ -58,13 +60,14 @@ class _FinanceStatisticsPageState extends ConsumerState<FinanceStatisticsPage> {
 
   Widget _buildBody(List<Transaction> transactions) {
     final stats = FinanceCalculator.calculatePeriodStats(transactions, _selectedPeriod);
-    final incomeShares = FinanceCalculator.buildCategoryShares(
-      transactions.where((trx) => trx.isIncome).toList(),
-    );
     final expenseShares = FinanceCalculator.buildCategoryShares(
       transactions.where((trx) => !trx.isIncome).toList(),
     );
     final recentTransactions = FinanceCalculator.getRecentTransactions(transactions);
+
+    // Calculate max for bar chart
+    final maxValue = [stats.totalIncome, stats.totalExpense]
+        .reduce((a, b) => a > b ? a : b);
 
     return SingleChildScrollView(
       child: Column(
@@ -74,12 +77,20 @@ class _FinanceStatisticsPageState extends ConsumerState<FinanceStatisticsPage> {
           const SizedBox(height: 24),
           _buildSummaryCards(stats),
           const SizedBox(height: 24),
-          if (incomeShares.isNotEmpty) ...[
-            _buildIncomeSection(incomeShares),
-            const SizedBox(height: 24),
-          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: IncomeExpenseBarChart(
+              totalIncome: stats.totalIncome.toDouble(),
+              totalExpense: stats.totalExpense.toDouble(),
+              maxY: (maxValue > 0 ? maxValue : 100).toDouble(),
+            ),
+          ),
+          const SizedBox(height: 24),
           if (expenseShares.isNotEmpty) ...[
-            _buildExpenseSection(expenseShares),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ExpenseCategoryStackedBar(categoryShares: expenseShares),
+            ),
             const SizedBox(height: 24),
           ],
           if (recentTransactions.isNotEmpty) ...[
@@ -163,94 +174,6 @@ class _FinanceStatisticsPageState extends ConsumerState<FinanceStatisticsPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildIncomeSection(List<dynamic> shares) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Pemasukan per Kategori',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ...List.generate(shares.length, (index) {
-              final share = shares[index];
-              final color = FinanceCalculator.categoryColors[
-                  index % FinanceCalculator.categoryColors.length];
-              return ExpenseDistributionBar(
-                label: share.label,
-                amount: share.amount,
-                percentage: share.percentage,
-                color: color,
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpenseSection(List<dynamic> shares) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Pengeluaran per Kategori',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ...List.generate(shares.length, (index) {
-              final share = shares[index];
-              final color = FinanceCalculator.categoryColors[
-                  index % FinanceCalculator.categoryColors.length];
-              return ExpenseDistributionBar(
-                label: share.label,
-                amount: share.amount,
-                percentage: share.percentage,
-                color: color,
-              );
-            }),
-          ],
-        ),
       ),
     );
   }

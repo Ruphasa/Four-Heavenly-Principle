@@ -13,6 +13,8 @@ abstract class BaseFirestoreRepository<T> {
   CollectionReference<Map<String, dynamic>> get _col =>
       firestore.collection(collectionPath);
 
+  CollectionReference<Map<String, dynamic>> get collection => _col;
+
   Stream<List<T>> streamAll({Query<Map<String, dynamic>> Function(Query<Map<String, dynamic>> q)? where}) {
     Query<Map<String, dynamic>> q = _col;
     if (where != null) q = where(q);

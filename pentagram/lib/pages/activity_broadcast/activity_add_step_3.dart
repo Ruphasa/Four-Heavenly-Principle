@@ -37,11 +37,11 @@ class ActivityAddStep3 extends StatelessWidget {
         // Penanggung Jawab Dropdown - Using Firestore data
         Consumer(
           builder: (context, ref, child) {
-            final citizensAsync = ref.watch(citizensStreamProvider);
+            final citizensAsync = ref.watch(citizensWithUserStreamProvider);
             
             return citizensAsync.when(
-              data: (citizens) {
-                if (citizens.isEmpty) {
+              data: (citizensWithUser) {
+                if (citizensWithUser.isEmpty) {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -65,7 +65,7 @@ class ActivityAddStep3 extends StatelessWidget {
                 }
                 
                 // Build list of citizen names
-                final citizenNames = citizens.map((c) => c.name).toList();
+                final citizenNames = citizensWithUser.map((cw) => cw.name).toList();
                 
                 return EnhancedDropdown(
                   value: selectedPenanggungJawab,

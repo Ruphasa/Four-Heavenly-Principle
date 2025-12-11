@@ -30,6 +30,11 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
     });
   }
 
+  String _getInitial(String name) {
+    if (name.isEmpty) return '?';
+    return name.trim()[0].toUpperCase();
+  }
+
   void _showFilterDialog() async {
     await showDialog(
       context: context,
@@ -255,7 +260,7 @@ class _LogAktivitasPageState extends ConsumerState<LogAktivitasPage> {
           ),
           child: Center(
             child: Text(
-              log.avatar,
+              _getInitial(log.aktor),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

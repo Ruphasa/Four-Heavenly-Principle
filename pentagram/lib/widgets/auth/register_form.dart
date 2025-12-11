@@ -224,8 +224,6 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               items: _listStatusRumah,
               onChanged: (v) => setState(() => _statusRumah = v),
             ),
-            const SizedBox(height: 16),
-            _buildUploadField(label: 'Foto Identias'),
             const SizedBox(height: 32),
             Consumer(
               builder: (context, ref, _) {
@@ -393,22 +391,6 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     );
   }
 
-  Widget _buildUploadField({required String label}) {
-    return Container(
-      height: 80,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.backgroundGrey,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12, width: 1.5),
-      ),
-      child: const Text(
-        'Upload foto KK/KTP (.png/.jpg)',
-        style: TextStyle(color: AppColors.textMuted),
-      ),
-    );
-  }
-
   Widget _buildRegisterButton({required bool canRegister}) {
     final loading = ref.watch(registerControllerProvider).loading;
     final isEnabled = canRegister && !loading;
@@ -442,23 +424,103 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           child: ElevatedButton(
             onPressed: isEnabled
                 ? () async {
+                    // Validate form
+                    if (!_formKey.currentState!.validate()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Mohon lengkapi semua field yang diperlukan'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    // Validate required fields
+                    if (_namaController.text.trim().isEmpty ||
+                        _nikController.text.trim().isEmpty ||
+                        _emailController.text.trim().isEmpty ||
+                        _telpController.text.trim().isEmpty ||
+                        _passwordController.text.trim().isEmpty ||
+                        _tempatLahirController.text.trim().isEmpty ||
+                        _tanggalLahirController.text.trim().isEmpty ||
+                        _jenisKelamin == null ||
+                        _statusRumah == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Mohon lengkapi semua field yang diperlukan'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    // Validate house selection
+                    if ((_rumah == null || _rumah!.isEmpty) &&
+                        _alamatController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pilih rumah yang ada atau isi alamat rumah baru'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    // Validate password confirmation
+                    if (_passwordController.text != _confirmPasswordController.text) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Password dan konfirmasi password tidak sama'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      return;
+                    }
+                    
                     // Trigger register action
-                    await ref
-                        .read(registerControllerProvider.notifier)
-                        .refresh();
+                    await ref.read(registerControllerProvider.notifier).register(
+                      email: _emailController.text.trim(),
+                      password: _passwordController.text.trim(),
+                      name: _namaController.text.trim(),
+                      nik: _nikController.text.trim(),
+                      phone: _telpController.text.trim(),
+                      birthPlace: _tempatLahirController.text.trim(),
+                      birthDate: _tanggalLahirController.text.trim(),
+                      gender: _jenisKelamin!,
+                      address: _alamatController.text.trim().isNotEmpty
+                          ? _alamatController.text.trim()
+                          : _rumah!,
+                      selectedHouseAddress: _rumah,
+                      ownershipStatus: _statusRumah!,
+                    );
+                    
+                    // Check if registration was successful
+                    final state = ref.read(registerControllerProvider);
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Akun berhasil dibuat'),
-                        backgroundColor: AppColors.primary,
-                      ),
-                    );
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                    );
+                    
+                    if (state.success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Akun berhasil dibuat! Silakan tunggu persetujuan admin.'),
+                          backgroundColor: AppColors.success,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                    } else if (state.error != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.error!),
+                          backgroundColor: AppColors.error,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
                   }
                 : null,
             style: ElevatedButton.styleFrom(

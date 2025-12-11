@@ -4,7 +4,7 @@ import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/population_analytics.dart';
 import 'package:pentagram/widgets/dashboard/stat_card.dart';
-import 'package:pentagram/widgets/dashboard/distribution_bar.dart';
+import 'package:pentagram/widgets/dashboard/stacked_progress_bar.dart';
 import 'package:pentagram/widgets/population/gender_distribution_chart.dart';
 import 'package:pentagram/widgets/population/age_group_distribution_chart.dart';
 import 'package:pentagram/widgets/population/occupation_item.dart';
@@ -217,13 +217,16 @@ class _PopulationStatisticsPageState extends ConsumerState<PopulationStatisticsP
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          ...maritalData.map((data) => DistributionBar(
+          StackedProgressBar(
+            segments: maritalData.map((data) {
+              return ProgressSegment(
                 label: data.label,
                 count: data.count,
-                total: maritalData.fold(0, (sum, item) => sum + item.count),
-                percentage: data.percentage,
+                percentage: data.percentage / 100,
                 color: data.color,
-              )),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
@@ -288,13 +291,16 @@ class _PopulationStatisticsPageState extends ConsumerState<PopulationStatisticsP
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          ...educations.map((data) => DistributionBar(
+          StackedProgressBar(
+            segments: educations.map((data) {
+              return ProgressSegment(
                 label: data.label,
                 count: data.count,
-                total: educations.fold(0, (sum, item) => sum + item.count),
-                percentage: data.percentage,
+                percentage: data.percentage / 100,
                 color: data.color,
-              )),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );

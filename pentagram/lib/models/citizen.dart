@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Citizen {
   final String? documentId;
-  final String name;
+  final String userId; // Reference to users collection (Firebase Auth UID)
   final String nik;
   final String? familyId; // relation to families
   final String? houseId; // relation to houses
@@ -18,7 +18,7 @@ class Citizen {
 
   Citizen({
     this.documentId,
-    required this.name,
+    required this.userId,
     required this.nik,
     this.familyId,
     this.houseId,
@@ -42,6 +42,23 @@ class Citizen {
     return age;
   }
 
+  /// Helper to get citizen name from userId
+  /// This should be used with a FutureBuilder or StreamBuilder to fetch user data
+  static Future<String> getNameFromUserId(String userId) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (userDoc.exists) {
+        return (userDoc.data()?['name'] as String?) ?? 'Unknown';
+      }
+      return 'Unknown';
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
+
   factory Citizen.fromMap(Map<String, dynamic> map) {
     final birth = map['birthDate'];
     late final DateTime birthDate;
@@ -57,7 +74,7 @@ class Citizen {
 
     return Citizen(
       documentId: map['_docId'] as String?,
-      name: (map['name'] ?? '-') as String,
+      userId: (map['userId'] ?? '-') as String,
       nik: (map['nik'] ?? '-') as String,
       familyId: map['familyId'] as String?,
       houseId: map['houseId'] as String?,
@@ -75,7 +92,7 @@ class Citizen {
 
   Map<String, dynamic> toMap() {
     return {
-      'name': name,
+      'userId': userId,
       'nik': nik,
       'familyId': familyId,
       'houseId': houseId,

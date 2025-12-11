@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pentagram/services/storage_service.dart';
 
 class AuthService {
@@ -36,6 +37,9 @@ class AuthService {
               email: email,
               userId: credential.user!.uid,
             );
+            
+            // Buat user di Firestore dengan email dari auth
+            await _createUserInFirestore(credential.user!);
           }
           
           return true;
@@ -70,5 +74,23 @@ class AuthService {
   /// Get saved email from storage
   Future<String?> getSavedEmail() async {
     return await _storage.getSavedEmail();
+  }
+
+  /// Create user document in Firestore with email from Firebase Auth
+  Future<void> _createUserInFirestore(User user) async {
+    final firestore = FirebaseFirestore.instance;
+    final userDoc = firestore.collection('users').doc(user.uid);
+    
+    // Check if user already exists
+    final docSnapshot = await userDoc.get();
+    if (!docSnapshot.exists) {
+      // Create user with email from auth
+      await userDoc.set({
+        'name': user.displayName ?? user.email?.split('@').first ?? 'User',
+        'email': user.email ?? '', // Email dari Firebase Auth
+        'status': 'Menunggu', // Default status
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 }

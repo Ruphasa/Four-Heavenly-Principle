@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:pentagram/models/activity.dart';
 import 'package:pentagram/models/activity_log.dart';
 import 'package:pentagram/models/citizen.dart';
+import 'package:pentagram/models/citizen_with_user.dart';
 import 'package:pentagram/models/family.dart';
 import 'package:pentagram/models/family_mutation.dart';
 import 'package:pentagram/models/house.dart';
@@ -89,6 +90,17 @@ final transactionsStreamProvider =
       );
     });
 
+// Users
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  final fs = ref.watch(firestoreProvider);
+  return UserRepository(fs);
+});
+
+final usersStreamProvider = StreamProvider.autoDispose<List<AppUser>>((ref) {
+  final repo = ref.watch(userRepositoryProvider);
+  return repo.streamAll(where: (q) => q.orderBy('name', descending: false));
+});
+
 // Population data
 final citizenRepositoryProvider = Provider<CitizenRepository>((ref) {
   final fs = ref.watch(firestoreProvider);
@@ -98,6 +110,27 @@ final citizenRepositoryProvider = Provider<CitizenRepository>((ref) {
 final citizensStreamProvider = StreamProvider.autoDispose<List<Citizen>>((ref) {
   final repo = ref.watch(citizenRepositoryProvider);
   return repo.streamAll();
+});
+
+// Citizens with User (joined data)
+final citizensWithUserStreamProvider = StreamProvider.autoDispose<List<CitizenWithUser>>((ref) async* {
+  final citizenRepo = ref.watch(citizenRepositoryProvider);
+  final userRepo = ref.watch(userRepositoryProvider);
+  
+  await for (final citizens in citizenRepo.streamAll()) {
+    final citizensWithUser = <CitizenWithUser>[];
+    for (final citizen in citizens) {
+      try {
+        final userDoc = await userRepo.collection.doc(citizen.userId).get();
+        final user = userDoc.exists ? AppUser.fromMap(userDoc.data()!) : null;
+        citizensWithUser.add(CitizenWithUser(citizen: citizen, user: user));
+      } catch (e) {
+        // If user fetch fails, add citizen with null user
+        citizensWithUser.add(CitizenWithUser(citizen: citizen, user: null));
+      }
+    }
+    yield citizensWithUser;
+  }
 });
 
 final familyRepositoryProvider = Provider<FamilyFirestoreRepository>((ref) {
@@ -162,17 +195,6 @@ final penerimaanWargaStreamProvider =
       final repo = ref.watch(penerimaanWargaRepositoryProvider);
       return repo.streamAll(where: (q) => q.orderBy('no', descending: false));
     });
-
-// Users
-final userRepositoryProvider = Provider<UserRepository>((ref) {
-  final fs = ref.watch(firestoreProvider);
-  return UserRepository(fs);
-});
-
-final usersStreamProvider = StreamProvider.autoDispose<List<AppUser>>((ref) {
-  final repo = ref.watch(userRepositoryProvider);
-  return repo.streamAll(where: (q) => q.orderBy('name', descending: false));
-});
 
 // Channels
 final channelRepositoryProvider = Provider<ChannelRepository>((ref) {

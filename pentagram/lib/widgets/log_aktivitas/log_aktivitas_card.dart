@@ -7,6 +7,11 @@ class LogAktivitasCard extends StatelessWidget {
 
   const LogAktivitasCard({required this.aktivitas, super.key});
 
+  String _getInitial(String name) {
+    if (name.isEmpty) return '?';
+    return name.trim()[0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -19,7 +24,7 @@ class LogAktivitasCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Avatar
+            // Avatar dengan inisial
             Container(
               width: 40,
               height: 40,
@@ -29,11 +34,11 @@ class LogAktivitasCard extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  aktivitas.avatar,
+                  _getInitial(aktivitas.aktor),
                   style: const TextStyle(
                     color: Colors.blue,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 16,
                   ),
                 ),
               ),

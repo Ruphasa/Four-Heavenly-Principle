@@ -70,7 +70,7 @@ class _ComposePesanDialogState extends ConsumerState<ComposePesanDialog> {
   @override
   Widget build(BuildContext context) {
     final responsive = context.responsive;
-    final citizensAsync = ref.watch(citizensStreamProvider);
+    final citizensAsync = ref.watch(citizensWithUserStreamProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -96,7 +96,7 @@ class _ComposePesanDialogState extends ConsumerState<ComposePesanDialog> {
 
                 // Recipient dropdown
                 citizensAsync.when(
-                  data: (citizens) {
+                  data: (citizensWithUser) {
                     return DropdownButtonFormField<String>(
                       decoration: InputDecoration(
                         labelText: 'Penerima',
@@ -108,11 +108,11 @@ class _ComposePesanDialogState extends ConsumerState<ComposePesanDialog> {
                         ),
                       ),
                       value: _selectedCitizenId,
-                      items: citizens.map((citizen) {
+                      items: citizensWithUser.map((cw) {
                         return DropdownMenuItem(
-                          value: citizen.documentId,
+                          value: cw.documentId,
                           child: Text(
-                            citizen.name,
+                            cw.name,
                             style: TextStyle(fontSize: responsive.fontSize(14)),
                           ),
                         );
@@ -120,10 +120,10 @@ class _ComposePesanDialogState extends ConsumerState<ComposePesanDialog> {
                       onChanged: (value) {
                         setState(() => _selectedCitizenId = value);
                         if (value != null) {
-                          final citizen = citizens.firstWhere(
-                            (c) => c.documentId == value,
+                          final citizenWithUser = citizensWithUser.firstWhere(
+                            (cw) => cw.documentId == value,
                           );
-                          _namaController.text = citizen.name;
+                          _namaController.text = citizenWithUser.name;
                         }
                       },
                       validator: (value) {

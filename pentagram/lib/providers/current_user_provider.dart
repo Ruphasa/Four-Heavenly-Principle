@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pentagram/services/storage_service.dart';
+import 'package:pentagram/models/user.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
 /// Provider untuk mendapatkan current user ID dari Firebase Auth
 final currentUserIdProvider = FutureProvider<String?>((ref) async {
@@ -49,3 +52,24 @@ final currentUserNameProvider = FutureProvider<String>((ref) async {
 final currentFirebaseUserProvider = StreamProvider<User?>((ref) {
   return FirebaseAuth.instance.authStateChanges();
 });
+
+/// Provider untuk mendapatkan current user data dari Firestore
+final currentAppUserProvider = StreamProvider<AppUser?>((ref) {
+  final userRepo = ref.watch(userRepositoryProvider);
+  final currentUser = FirebaseAuth.instance.currentUser;
+  
+  if (currentUser == null) {
+    return Stream.value(null);
+  }
+
+  // Query by document ID (UID) for accurate matching
+  return userRepo.streamAll(
+    where: (q) => q.where(FieldPath.documentId, isEqualTo: currentUser.uid),
+  ).map((users) => users.isNotEmpty ? users.first : null);
+});
+
+/// Helper untuk mendapatkan kata pertama dari nama
+String getFirstName(String? fullName) {
+  if (fullName == null || fullName.isEmpty) return 'User';
+  return fullName.split(' ').first;
+}

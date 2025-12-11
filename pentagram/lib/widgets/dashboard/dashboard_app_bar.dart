@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/pages/notifikasi/notifikasi.dart';
 import 'package:pentagram/pages/profil/profil_page.dart';
 import 'package:pentagram/utils/app_colors.dart';
+import 'package:pentagram/providers/current_user_provider.dart';
 
-class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
+class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const DashboardAppBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(72);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncUser = ref.watch(currentAppUserProvider);
+    final asyncUserName = ref.watch(currentUserNameProvider);
+
     return AppBar(
       backgroundColor: AppColors.primary,
       elevation: 0,
@@ -32,14 +37,53 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Selamat pagi, Bu RT!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+          Expanded(
+            child: asyncUser.when(
+              loading: () => const Text(
+                'Halo!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+              error: (_, __) => asyncUserName.when(
+                loading: () => const Text(
+                  'Halo!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                error: (_, __) => const Text(
+                  'Halo!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                data: (name) => Text(
+                  'Halo, $name!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              data: (user) {
+                final firstName = user?.name.split(' ').first ?? 'User';
+                return Text(
+                  'Halo, $firstName!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                );
+              },
             ),
           ),
         ],

@@ -58,26 +58,43 @@ class Seeders {
   Future<List<DocumentReference>> seedUsers() async {
     final col = firestore.collection('users');
     final batch = firestore.batch();
-    // Admin (creator of initial data)
-    final adminRef = col.doc('user_admin');
+    
+    // Admin user with Firebase Auth UID (tidak masuk ke citizen)
+    final adminRef = col.doc('nyyTL9RMhKZuchjQ4hCXZ6nx4u33');
     batch.set(adminRef, {
       'name': 'Admin',
       'email': 'admin@example.com',
-      'status': 'Aktif',
+      'status': 'Disetujui',
+      'role': 'Admin',
       'createdAt': FieldValue.serverTimestamp(),
     });
-    // Additional users for relations (not required as creators)
-    final others = [
-      {'id': 'user2', 'name': 'Andi Wijaya', 'email': 'andi@example.com'},
-      {'id': 'user3', 'name': 'Siti Rahma', 'email': 'siti@example.com'},
+    
+    // Ruphasa Mafahl user with Firebase Auth UID
+    final ruphasaRef = col.doc('gdBrktH29QgsG7guxE8rHPUq93k1');
+    batch.set(ruphasaRef, {
+      'name': 'Ruphasa Mafahl',
+      'email': 'ruphasa@example.com',
+      'status': 'Disetujui',
+      'role': 'User',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    
+    // Warga users - setiap citizen akan punya user account
+    final wargaUsers = [
+      {'id': 'user_andi', 'name': 'Andi Wijaya', 'email': 'andi@example.com'},
+      {'id': 'user_rina', 'name': 'Rina Wijaya', 'email': 'rina@example.com'},
+      {'id': 'user_budi', 'name': 'Budi Santoso', 'email': 'budi@example.com'},
+      {'id': 'user_dewi', 'name': 'Dewi Santoso', 'email': 'dewi@example.com'},
     ];
-    final refs = <DocumentReference>[adminRef];
-    for (final u in others) {
+    
+    final refs = <DocumentReference>[adminRef, ruphasaRef];
+    for (final u in wargaUsers) {
       final ref = col.doc(u['id']!);
       batch.set(ref, {
         'name': u['name'],
         'email': u['email'],
-        'status': 'Aktif',
+        'status': 'Disetujui',
+        'role': 'User',
         'createdAt': FieldValue.serverTimestamp(),
       });
       refs.add(ref);
@@ -90,7 +107,7 @@ class Seeders {
     final col = firestore.collection('channels');
     final batch = firestore.batch();
     final refs = <DocumentReference>[];
-    final adminId = 'user_admin';
+    final adminId = 'nyyTL9RMhKZuchjQ4hCXZ6nx4u33';
     final channels = [
       {
         'id': 'channel1',
@@ -163,13 +180,11 @@ class Seeders {
     final col = firestore.collection('citizens');
     final batch = firestore.batch();
     final refs = <DocumentReference>[];
-    final citizenNames = [
-      'Andi Wijaya',
-      'Rina Wijaya',
-      'Budi Santoso',
-      'Dewi Santoso',
-    ];
-    for (var i = 0; i < citizenNames.length; i++) {
+    
+    // User IDs untuk citizens (bukan admin)
+    final userIds = ['user_andi', 'user_rina', 'user_budi', 'user_dewi'];
+    
+    for (var i = 0; i < userIds.length; i++) {
       final ref = col.doc('citizen${i + 1}');
       final familyRef = families[i % families.length];
       final houseRef = houses[i % houses.length];
@@ -177,7 +192,7 @@ class Seeders {
       final gender = i % 2 == 0 ? 'Laki-laki' : 'Perempuan';
       final birthDate = DateTime(1990 + i, (i % 12) + 1, (i % 28) + 1);
       batch.set(ref, {
-        'name': citizenNames[i],
+        'userId': userIds[i], // Reference to user account
         'nik': '31740${1000 + i}',
         'familyId': familyRef.id,
         'houseId': houseRef.id,
@@ -229,7 +244,7 @@ class Seeders {
     final col = firestore.collection('activities');
     final refs = <DocumentReference>[];
     final now = DateTime.now();
-    final adminId = 'user_admin';
+    final adminId = 'nyyTL9RMhKZuchjQ4hCXZ6nx4u33';
     final activities = [
       {
         'docId': 'activity1',
@@ -299,7 +314,7 @@ class Seeders {
         'deskripsi': 'Admin membuat kegiatan baru: Kerja Bakti Mingguan',
         'aktor': 'Admin',
         'tanggal': Timestamp.fromDate(now.subtract(const Duration(hours: 3))),
-        'avatar': '-',
+        'avatar': 'A',
       },
       {
         'id': 'log2',
@@ -307,7 +322,7 @@ class Seeders {
         'deskripsi': 'Admin mengirim broadcast: Informasi iuran',
         'aktor': 'Admin',
         'tanggal': Timestamp.fromDate(now.subtract(const Duration(hours: 2))),
-        'avatar': '-',
+        'avatar': 'A',
       },
       {
         'id': 'log3',
@@ -315,7 +330,7 @@ class Seeders {
         'deskripsi': 'Admin mencatat transaksi pemasukan',
         'aktor': 'Admin',
         'tanggal': Timestamp.fromDate(now.subtract(const Duration(hours: 1))),
-        'avatar': '-',
+        'avatar': 'A',
       },
     ];
     for (final e in entries) {
@@ -335,7 +350,7 @@ class Seeders {
   Future<void> seedBroadcasts(List<DocumentReference> channels, List<DocumentReference> users) async {
     final col = firestore.collection('broadcast_messages');
     final batch = firestore.batch();
-    final adminId = 'user_admin';
+    final adminId = 'nyyTL9RMhKZuchjQ4hCXZ6nx4u33';
     final now = DateTime.now();
     final messages = [
       {
@@ -392,7 +407,7 @@ class Seeders {
     final col = firestore.collection('transactions');
     final batch = firestore.batch();
     final now = DateTime.now();
-    final adminId = 'user_admin';
+    final adminId = 'nyyTL9RMhKZuchjQ4hCXZ6nx4u33';
     final txs = [
       {
         'id': 'tx1',

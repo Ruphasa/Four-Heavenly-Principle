@@ -36,8 +36,8 @@ class GenderDistributionChart extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
+          AspectRatio(
+            aspectRatio: 1.5,
             child: Row(
               children: [
                 Expanded(

@@ -324,9 +324,27 @@ Future<void> _seedCitizens(FirebaseFirestore firestore) async {
   final snap = await col.limit(1).get();
   if (snap.docs.isNotEmpty) return;
 
+  // Create users first
+  final usersCol = firestore.collection('users');
+  final userIds = <String>[];
+  
+  final users = [
+    {'name': 'Ahmad Subarjo', 'email': '', 'status': 'Disetujui'},
+    {'name': 'Siti Nurhaliza', 'email': '', 'status': 'Disetujui'},
+    {'name': 'Budi Santoso', 'email': '', 'status': 'Disetujui'},
+    {'name': 'Dewi Lestari', 'email': '', 'status': 'Disetujui'},
+    {'name': 'Andi Wijaya', 'email': '', 'status': 'Disetujui'},
+  ];
+  
+  for (final userData in users) {
+    final userDoc = await usersCol.add(userData);
+    userIds.add(userDoc.id);
+  }
+
+  // Create citizens with userId references
   final citizens = [
     Citizen(
-      name: 'Ahmad Subarjo',
+      userId: userIds[0],
       nik: '3201012345678901',
       familyRole: 'Kepala Keluarga',
       status: 'Aktif',
@@ -339,7 +357,7 @@ Future<void> _seedCitizens(FirebaseFirestore firestore) async {
       familyName: 'Keluarga Ahmad Subarjo',
     ),
     Citizen(
-      name: 'Siti Nurhaliza',
+      userId: userIds[1],
       nik: '3201012345678902',
       familyRole: 'Istri',
       status: 'Aktif',
@@ -352,7 +370,7 @@ Future<void> _seedCitizens(FirebaseFirestore firestore) async {
       familyName: 'Keluarga Ahmad Subarjo',
     ),
     Citizen(
-      name: 'Budi Santoso',
+      userId: userIds[2],
       nik: '3201012345678903',
       familyRole: 'Kepala Keluarga',
       status: 'Aktif',
@@ -365,7 +383,7 @@ Future<void> _seedCitizens(FirebaseFirestore firestore) async {
       familyName: 'Keluarga Budi Santoso',
     ),
     Citizen(
-      name: 'Dewi Lestari',
+      userId: userIds[3],
       nik: '3201012345678904',
       familyRole: 'Anak',
       status: 'Tidak Aktif',
@@ -378,7 +396,7 @@ Future<void> _seedCitizens(FirebaseFirestore firestore) async {
       familyName: 'Keluarga Budi Santoso',
     ),
     Citizen(
-      name: 'Andi Wijaya',
+      userId: userIds[4],
       nik: '3201012345678905',
       familyRole: 'Kepala Keluarga',
       status: 'Aktif',

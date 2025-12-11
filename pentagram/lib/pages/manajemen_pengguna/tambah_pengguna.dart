@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pentagram/providers/app_providers.dart';
 import 'package:pentagram/utils/app_colors.dart';
 
@@ -27,6 +29,7 @@ class _TambahPenggunaPageState extends ConsumerState<TambahPenggunaPage> {
     'Sekretaris',
     'Bendahara',
   ];
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -40,16 +43,85 @@ class _TambahPenggunaPageState extends ConsumerState<TambahPenggunaPage> {
 
   void _simpanData() async {
     if (_formKey.currentState!.validate()) {
-      // Simulate create action via controller
-      await ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data pengguna berhasil disimpan'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      Navigator.pop(context);
+      if (_role == '-- Pilih Role --') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Silakan pilih role pengguna'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      try {
+        // Create user in Firebase Auth
+        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        // Create user document in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(credential.user!.uid)
+            .set({
+          'name': _namaController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phone': _noHpController.text.trim(),
+          'role': _role,
+          'status': 'Disetujui',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // Refresh the controller
+        await ref.read(manajemenPenggunaControllerProvider.notifier).refresh();
+
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data pengguna berhasil disimpan'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context);
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+        switch (e.code) {
+          case 'weak-password':
+            errorMessage = 'Password terlalu lemah';
+            break;
+          case 'email-already-in-use':
+            errorMessage = 'Email sudah terdaftar';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Format email tidak valid';
+            break;
+          default:
+            errorMessage = 'Gagal membuat user: ${e.message}';
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -171,7 +243,7 @@ class _TambahPenggunaPageState extends ConsumerState<TambahPenggunaPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _simpanData,
+                      onPressed: _isLoading ? null : _simpanData,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textOnPrimary,
@@ -181,7 +253,16 @@ class _TambahPenggunaPageState extends ConsumerState<TambahPenggunaPage> {
                         ),
                         elevation: 2,
                       ),
-                      child: const Text('Simpan Data'),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Simpan Data'),
                     ),
                   ),
                   const SizedBox(height: 12),

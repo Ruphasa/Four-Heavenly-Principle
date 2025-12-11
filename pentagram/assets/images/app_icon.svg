@@ -1,0 +1,38 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024"
+     xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="240" ry="240" fill="url(#bgGrad)" />
+
+  <!-- Four curved principles -->
+  <g stroke="#FFFFFF" stroke-width="40" stroke-linecap="round" fill="none">
+    <!-- Top-left arc -->
+    <path d="M 260 430
+             C 260 310, 380 220, 512 220" />
+    <!-- Top-right arc -->
+    <path d="M 764 430
+             C 764 310, 644 220, 512 220" />
+    <!-- Bottom-left arc -->
+    <path d="M 260 594
+             C 260 714, 380 804, 512 804" />
+    <!-- Bottom-right arc -->
+    <path d="M 764 594
+             C 764 714, 644 804, 512 804" />
+  </g>
+
+  <!-- Central symbol (simple pentagon-ish star node) -->
+  <circle cx="512" cy="512" r="40" fill="#FFFFFF" opacity="0.95"/>
+
+  <g stroke="#FFFFFF" stroke-width="24" stroke-linecap="round">
+    <line x1="512" y1="472" x2="512" y2="404" />
+    <line x1="512" y1="552" x2="512" y2="620" />
+    <line x1="480" y1="492" x2="424" y2="448" />
+    <line x1="544" y1="492" x2="600" y2="448" />
+  </g>
+</svg>

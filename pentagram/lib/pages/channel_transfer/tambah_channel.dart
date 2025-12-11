@@ -1,21 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/utils/responsive_helper.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
+import 'package:pentagram/models/channel.dart';
 
-class TambahChannelPage extends StatefulWidget {
+class TambahChannelPage extends ConsumerStatefulWidget {
   const TambahChannelPage({super.key});
 
   @override
-  State<TambahChannelPage> createState() => _TambahChannelPageState();
+  ConsumerState<TambahChannelPage> createState() => _TambahChannelPageState();
 }
 
-class _TambahChannelPageState extends State<TambahChannelPage> {
+class _TambahChannelPageState extends ConsumerState<TambahChannelPage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController namaController = TextEditingController();
   final TextEditingController rekeningController = TextEditingController();
   final TextEditingController pemilikController = TextEditingController();
   final TextEditingController catatanController = TextEditingController();
 
   String? selectedTipe;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    namaController.dispose();
+    rekeningController.dispose();
+    pemilikController.dispose();
+    catatanController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _simpanData() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (selectedTipe == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan pilih tipe channel'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final channelRepo = ref.read(channelRepositoryProvider);
+      
+      final newChannel = Channel(
+        name: namaController.text.trim(),
+        type: selectedTipe!,
+        accountName: pemilikController.text.trim(),
+      );
+
+      await channelRepo.create(newChannel);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Channel berhasil ditambahkan!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menambahkan channel: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _resetForm() {
+    namaController.clear();
+    rekeningController.clear();
+    pemilikController.clear();
+    catatanController.clear();
+    setState(() => selectedTipe = null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +109,12 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(responsive.padding(20)),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(responsive.padding(24)),
-          decoration: BoxDecoration(
+        child: Form(
+          key: _formKey,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(responsive.padding(24)),
+            decoration: BoxDecoration(
             color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(responsive.borderRadius(16)),
             border: Border.all(color: AppColors.border),
@@ -94,11 +168,12 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                 hint: 'Unggah logo channel',
                 responsive: responsive,
               ),
-              _buildTextArea(
+              _buildTextField(
                 label: 'Catatan (Opsional)',
                 hint: 'Contoh: Transfer hanya dari bank yang sama agar instan.',
                 controller: catatanController,
                 responsive: responsive,
+                isRequired: false,
               ),
 
               SizedBox(height: responsive.spacing(30)),
@@ -108,9 +183,7 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // TODO: simpan logika
-                            },
+                            onPressed: _isLoading ? null : _simpanData,
                             icon: Icon(Icons.save_rounded, size: responsive.iconSize(18)),
                             label: Text(
                               'Simpan',
@@ -134,13 +207,7 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              namaController.clear();
-                              rekeningController.clear();
-                              pemilikController.clear();
-                              catatanController.clear();
-                              setState(() => selectedTipe = null);
-                            },
+                            onPressed: _isLoading ? null : _resetForm,
                             icon: Icon(Icons.refresh_rounded, size: responsive.iconSize(18)),
                             label: Text(
                               'Reset',
@@ -165,9 +232,7 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // TODO: simpan logika
-                            },
+                            onPressed: _isLoading ? null : _simpanData,
                             icon: Icon(Icons.save_rounded, size: responsive.iconSize(18)),
                             label: Text(
                               'Simpan',
@@ -190,13 +255,7 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                         SizedBox(width: responsive.spacing(12)),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              namaController.clear();
-                              rekeningController.clear();
-                              pemilikController.clear();
-                              catatanController.clear();
-                              setState(() => selectedTipe = null);
-                            },
+                            onPressed: _isLoading ? null : _resetForm,
                             icon: Icon(Icons.refresh_rounded, size: responsive.iconSize(18)),
                             label: Text(
                               'Reset',
@@ -217,7 +276,8 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                         ),
                       ],
                     ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -255,6 +315,7 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
     required String hint,
     required TextEditingController controller,
     required ResponsiveHelper responsive,
+    bool isRequired = true,
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: responsive.spacing(18)),
@@ -269,8 +330,16 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
             ),
           ),
           SizedBox(height: responsive.spacing(6)),
-          TextField(
+          TextFormField(
             controller: controller,
+            validator: isRequired
+                ? (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return '$label tidak boleh kosong';
+                    }
+                    return null;
+                  }
+                : null,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(fontSize: responsive.fontSize(13)),
@@ -417,52 +486,6 @@ class _TambahChannelPageState extends State<TambahChannelPage> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextArea({
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    required ResponsiveHelper responsive,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: responsive.spacing(18)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: responsive.fontSize(14),
-            ),
-          ),
-          SizedBox(height: responsive.spacing(6)),
-          TextField(
-            controller: controller,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(fontSize: responsive.fontSize(13)),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: responsive.padding(16),
-                vertical: responsive.padding(14),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: AppColors.border),
-                borderRadius: BorderRadius.circular(responsive.borderRadius(10)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
-                borderRadius: BorderRadius.circular(responsive.borderRadius(10)),
-              ),
             ),
           ),
         ],

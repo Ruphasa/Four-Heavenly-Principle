@@ -4,7 +4,8 @@ import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/models/activity.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/widgets/dashboard/stat_card.dart';
-import 'package:pentagram/widgets/dashboard/distribution_bar.dart';
+import 'package:pentagram/widgets/dashboard/stacked_progress_bar.dart';
+import 'package:pentagram/widgets/dashboard/activity_timeline_chart.dart';
 
 class ActivityStatisticsPage extends ConsumerStatefulWidget {
   const ActivityStatisticsPage({super.key});
@@ -48,6 +49,8 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
           _buildHeader(),
           const SizedBox(height: 24),
           _buildStatusCards(stat),
+          const SizedBox(height: 24),
+          ActivityTimelineChart(activities: activities),
           const SizedBox(height: 24),
           _buildCategoryDistribution(categories, activities.length),
           const SizedBox(height: 24),
@@ -160,13 +163,16 @@ class _ActivityStatisticsPageState extends ConsumerState<ActivityStatisticsPage>
               ),
             )
           else
-            ...distribution.map((item) => DistributionBar(
+            StackedProgressBar(
+              segments: distribution.map((item) {
+                return ProgressSegment(
                   label: item['category'],
                   count: item['count'],
-                  total: total,
-                  percentage: item['percentage'].toDouble(),
+                  percentage: item['percentage'].toDouble() / 100,
                   color: item['color'],
-                )),
+                );
+              }).toList(),
+            ),
         ],
       ),
     );

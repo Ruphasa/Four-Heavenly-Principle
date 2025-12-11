@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/profil/profile_picture_widget.dart';
 import 'package:pentagram/widgets/profil/profile_text_field.dart';
+import 'package:pentagram/providers/current_user_provider.dart';
+import 'package:pentagram/providers/firestore_providers.dart';
 
 class EditProfilPage extends ConsumerStatefulWidget {
   const EditProfilPage({super.key});
@@ -13,12 +17,48 @@ class EditProfilPage extends ConsumerStatefulWidget {
 
 class _EditProfilPageState extends ConsumerState<EditProfilPage> {
   final _formKey = GlobalKey<FormState>();
-  final _namaController = TextEditingController(text: 'Nyi Roro Lor');
-  final _emailController = TextEditingController(text: 'nyirorolor@gmail.com');
-  final _teleponController = TextEditingController(text: '081234567890');
-  final _alamatController = TextEditingController(
-    text: 'Jl. Raya Desa No. 123, RT 01/RW 02',
-  );
+  final _namaController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _teleponController = TextEditingController();
+  final _alamatController = TextEditingController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final asyncUser = ref.read(currentAppUserProvider);
+      final email = await ref.read(currentUserEmailProvider.future);
+      
+      asyncUser.whenData((user) {
+        if (mounted) {
+          setState(() {
+            _namaController.text = user?.name ?? '';
+            _emailController.text = user?.email ?? email ?? '';
+            _teleponController.text = user?.phone ?? '';
+            _alamatController.text = user?.address ?? '';
+            _isLoading = false;
+          });
+        }
+      });
+      
+      // Fallback if no data yet
+      if (mounted && _isLoading) {
+        setState(() {
+          _emailController.text = email ?? '';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -29,17 +69,58 @@ class _EditProfilPageState extends ConsumerState<EditProfilPage> {
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement save profile logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profil berhasil diperbarui!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
+      setState(() => _isLoading = true);
+
+      try {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        
+        if (currentUser != null) {
+          final userRepo = ref.read(userRepositoryProvider);
+          
+          // Update user data menggunakan UID sebagai document ID
+          // Menggunakan setData dengan merge agar bisa create jika belum ada
+          await userRepo.collection.doc(currentUser.uid).set(
+            {
+              'name': _namaController.text.trim(),
+              'email': _emailController.text.trim(),
+              'phone': _teleponController.text.trim(),
+              'address': _alamatController.text.trim(),
+            },
+            SetOptions(merge: true),
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profil berhasil diperbarui!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            // Refresh the provider
+            ref.invalidate(currentAppUserProvider);
+            Navigator.pop(context);
+          }
+        } else {
+          throw 'User tidak ditemukan. Silakan login kembali.';
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memperbarui profil: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -71,7 +152,9 @@ class _EditProfilPageState extends ConsumerState<EditProfilPage> {
         ),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(

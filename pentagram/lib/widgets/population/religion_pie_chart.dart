@@ -36,8 +36,8 @@ class ReligionPieChart extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
+          AspectRatio(
+            aspectRatio: 1.5,
             child: religions.isEmpty
                 ? const Center(child: Text('Tidak ada data'))
                 : Row(

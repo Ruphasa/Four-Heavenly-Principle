@@ -3,8 +3,17 @@ class AppUser {
   final String name;
   final String email;
   final String status;
+  final String? phone;
+  final String? address;
 
-  const AppUser({this.documentId, required this.name, required this.email, required this.status});
+  const AppUser({
+    this.documentId,
+    required this.name,
+    required this.email,
+    required this.status,
+    this.phone,
+    this.address,
+  });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
     return AppUser(
@@ -12,6 +21,8 @@ class AppUser {
       name: (map['name'] ?? '-') as String,
       email: (map['email'] ?? '-') as String,
       status: (map['status'] ?? 'Menunggu') as String,
+      phone: map['phone'] as String?,
+      address: map['address'] as String?,
     );
   }
 
@@ -20,6 +31,8 @@ class AppUser {
       'name': name,
       'email': email,
       'status': status,
+      if (phone != null) 'phone': phone,
+      if (address != null) 'address': address,
     };
   }
 }

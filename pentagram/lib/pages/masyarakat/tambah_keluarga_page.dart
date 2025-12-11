@@ -206,11 +206,11 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
               const SizedBox(height: 8),
               Consumer(
                 builder: (context, ref, child) {
-                  final citizensAsync = ref.watch(citizensStreamProvider);
+                  final citizensAsync = ref.watch(citizensWithUserStreamProvider);
                   
                   return citizensAsync.when(
-                    data: (citizens) {
-                      if (citizens.isEmpty) {
+                    data: (citizensWithUser) {
+                      if (citizensWithUser.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -243,19 +243,19 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
                           ),
                           icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
                           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                          items: citizens.map((citizen) {
+                          items: citizensWithUser.map((cw) {
                             return DropdownMenuItem<String>(
-                              value: citizen.documentId,
+                              value: cw.documentId,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    citizen.name,
+                                    cw.name,
                                     style: const TextStyle(fontWeight: FontWeight.w600),
                                   ),
                                   Text(
-                                    'NIK: ${citizen.nik}',
+                                    'NIK: ${cw.nik}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textSecondary,
@@ -268,7 +268,7 @@ class _TambahKeluargaPageState extends ConsumerState<TambahKeluargaPage> {
                           onChanged: (value) {
                             setState(() {
                               _kepalaKeluargaId = value;
-                              final selected = citizens.firstWhere((c) => c.documentId == value);
+                              final selected = citizensWithUser.firstWhere((cw) => cw.documentId == value);
                               _kepalaKeluargaNama = selected.name;
                             });
                           },
