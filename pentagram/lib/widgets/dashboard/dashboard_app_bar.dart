@@ -64,17 +64,20 @@ class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                data: (name) => Text(
-                  'Halo, $name!',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                data: (name) {
+                  final firstName = getFirstName(name);
+                  return Text(
+                    'Halo, $firstName!',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
               ),
               data: (user) {
-                final firstName = user?.name.split(' ').first ?? 'User';
+                final firstName = getFirstName(user?.name);
                 return Text(
                   'Halo, $firstName!',
                   style: const TextStyle(

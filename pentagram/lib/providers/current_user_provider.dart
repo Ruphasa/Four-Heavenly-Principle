@@ -41,8 +41,8 @@ final currentUserNameProvider = FutureProvider<String>((ref) async {
   // Fallback ke email sebagai nama
   final email = await ref.watch(currentUserEmailProvider.future);
   if (email != null) {
-    // Ambil bagian sebelum @ sebagai nama
-    return email.split('@').first.toUpperCase();
+    // Ambil bagian sebelum @ sebagai nama, lalu format jadi kapital di awal
+    return _formatNameFromEmail(email);
   }
 
   return 'User';
@@ -62,14 +62,33 @@ final currentAppUserProvider = StreamProvider<AppUser?>((ref) {
     return Stream.value(null);
   }
 
-  // Query by document ID (UID) for accurate matching
-  return userRepo.streamAll(
-    where: (q) => q.where(FieldPath.documentId, isEqualTo: currentUser.uid),
-  ).map((users) => users.isNotEmpty ? users.first : null);
+  // Query by document ID (UID) untuk matching akurat.
+  // Jika terjadi error rules (misal permission-denied), kita swallow dan
+  // anggap user data tidak tersedia agar UI tetap bisa jalan dengan fallback.
+  return userRepo
+      .streamAll(
+        where: (q) => q.where(FieldPath.documentId, isEqualTo: currentUser.uid),
+      )
+      .handleError((_, __) {
+        // Intentionally swallow Firestore errors; UI will fallback ke nama dari email.
+      }).map((users) => users.isNotEmpty ? users.first : null);
 });
 
 /// Helper untuk mendapatkan kata pertama dari nama
 String getFirstName(String? fullName) {
   if (fullName == null || fullName.isEmpty) return 'User';
   return fullName.split(' ').first;
+}
+
+/// Helper untuk membentuk nama tampilan dari email
+String _formatNameFromEmail(String email) {
+  final localPart = email.split('@').first;
+  if (localPart.isEmpty) return 'User';
+
+  // Pisah di titik/underscore jika ada, ambil bagian pertama
+  final raw = localPart.split(RegExp(r'[._]')).first;
+  if (raw.isEmpty) return 'User';
+
+  final lower = raw.toLowerCase();
+  return '${lower[0].toUpperCase()}${lower.substring(1)}';
 }

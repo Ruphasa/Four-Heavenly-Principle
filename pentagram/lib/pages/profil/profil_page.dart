@@ -132,17 +132,9 @@ class ProfilPage extends ConsumerWidget {
       ),
       body: asyncUser.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error: $error'),
-            ],
-          ),
-        ),
-        data: (user) => SingleChildScrollView(
+        // Jika terjadi error (mis. permission-denied), tetap tampilkan profil
+        // dengan fallback ke nama dari provider asyncUserName.
+        error: (_, __) => SingleChildScrollView(
           child: Column(
             children: [
               const SizedBox(height: 24),
@@ -151,17 +143,17 @@ class ProfilPage extends ConsumerWidget {
                 error: (_, __) => const SizedBox.shrink(),
                 data: (name) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ProfileHeader(
-                    name: user?.name ?? name,
-                    role: user?.status ?? 'User',
+                  child: const ProfileHeader(
+                    name: 'User',
+                    role: 'User',
                     imagePath: 'assets/images/profile.png',
                   ),
                 ),
               ),
-            const SizedBox(height: 24),
-            _buildActionButtons(context),
-            const SizedBox(height: 24),
-            ProfileMenuSection(
+              const SizedBox(height: 24),
+              _buildActionButtons(context),
+              const SizedBox(height: 24),
+              ProfileMenuSection(
               title: 'PENGATURAN AKUN',
               children: [
                 ProfileMenuItem(
@@ -171,8 +163,8 @@ class ProfilPage extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            ProfileMenuSection(
+              const SizedBox(height: 16),
+              ProfileMenuSection(
               title: 'BANTUAN & INFORMASI',
               children: [
                 ProfileMenuItem(
@@ -193,8 +185,8 @@ class ProfilPage extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            ProfileMenuSection(
+              const SizedBox(height: 16),
+              ProfileMenuSection(
               title: 'LAINNYA',
               children: [
                 ProfileMenuItem(
@@ -220,12 +212,96 @@ class ProfilPage extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            _buildFooter(context),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+              _buildFooter(context),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
-      ),
+        data: (user) => SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              asyncUserName.when(
+                loading: () => const CircularProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (name) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: ProfileHeader(
+                    name: user?.name ?? name,
+                    role: user?.status ?? 'User',
+                    imagePath: 'assets/images/profile.png',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildActionButtons(context),
+              const SizedBox(height: 24),
+              ProfileMenuSection(
+                title: 'PENGATURAN AKUN',
+                children: [
+                  ProfileMenuItem(
+                    icon: Icons.lock_outline,
+                    title: 'Ubah Password',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ProfileMenuSection(
+                title: 'BANTUAN & INFORMASI',
+                children: [
+                  ProfileMenuItem(
+                    icon: Icons.phone_outlined,
+                    title: 'Pusat Bantuan',
+                    onTap: () {},
+                  ),
+                  ProfileMenuItem(
+                    icon: Icons.language,
+                    title: 'Bahasa',
+                    subtitle: 'Indonesia',
+                    onTap: () {},
+                  ),
+                  ProfileMenuItem(
+                    icon: Icons.info_outline,
+                    title: 'Tentang Jawara Pintar',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ProfileMenuSection(
+                title: 'LAINNYA',
+                children: [
+                  ProfileMenuItem(
+                    icon: Icons.star_outline,
+                    title: 'Beri Rating',
+                    onTap: () {},
+                  ),
+                  ProfileMenuItem(
+                    icon: Icons.article_outlined,
+                    title: 'Ketentuan Layanan',
+                    onTap: () {},
+                  ),
+                  ProfileMenuItem(
+                    icon: Icons.shield_outlined,
+                    title: 'Kebijakan Privasi',
+                    onTap: () {},
+                  ),
+                  ProfileMenuItem(
+                    icon: Icons.logout,
+                    title: 'Logout',
+                    iconColor: AppColors.error,
+                    onTap: () => _handleLogout(context, ref),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildFooter(context),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pentagram/providers/firestore_providers.dart';
 import 'package:pentagram/providers/current_user_provider.dart';
 import 'package:pentagram/providers/fcm_providers.dart';
+import 'package:pentagram/services/storage_service.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/widgets/chat/chat_bubble.dart';
 import 'package:pentagram/models/chat_message.dart';
@@ -47,7 +49,18 @@ class _NotifikasiState extends ConsumerState<Notifikasi> {
     _messageController.clear();
 
     try {
-      final currentUserId = await ref.read(currentUserIdProvider.future);
+      // Ambil userId secara defensif dari beberapa sumber
+      String? currentUserId = await ref.read(currentUserIdProvider.future);
+
+      if (currentUserId == null || currentUserId.isEmpty) {
+        currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      }
+
+      if (currentUserId == null || currentUserId.isEmpty) {
+        final storage = StorageService();
+        currentUserId = await storage.getSavedUserId();
+      }
+
       final currentUserName = await ref.read(currentUserNameProvider.future);
 
       if (currentUserId == null || currentUserId.isEmpty) {

@@ -21,6 +21,9 @@ class AuthService {
           email: email,
           userId: credential.user!.uid,
         );
+
+        // Pastikan dokumen user di Firestore selalu ada dan sinkron
+        await _createUserInFirestore(credential.user!);
       }
       
       return true;
@@ -63,6 +66,9 @@ class AuthService {
 
   /// Cek apakah user sudah login sebelumnya
   Future<bool> isLoggedIn() async {
+    // Utamakan status dari FirebaseAuth agar konsisten
+    if (_auth.currentUser != null) return true;
+    // Fallback ke storage untuk menjaga kompatibilitas lama
     return await _storage.isLoggedIn();
   }
 
