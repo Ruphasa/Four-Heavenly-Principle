@@ -31,10 +31,6 @@
 
 ### Laporan Reflektif
 - [Laporan Reflektif Mendalam](#-laporan-reflektif-mendalam)
-  - [Pembelajaran Utama](#pembelajaran-utama)
-  - [Tantangan yang Dihadapi](#tantangan-yang-dihadapi)
-  - [Rencana Peningkatan](#rencana-peningkatan)
-  - [Key Insights & Lessons](#key-insights--lessons)
 
 ---
 
@@ -126,30 +122,30 @@ Aplikasi mobile cross-platform Flutter dengan arsitektur lengkap:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                                                                     │
+│                                                                    │
 │                     PENGGUNA (End Users)                           │
 │            (Admin RW, Ketua RW, Bendahara, Warga)                  │
-│                                                                     │
-└──────────────────────────┬──────────────────────────────────────────┘
-                          │
-                          │ Mobile App / Web Browser
-                          ▼
+│                                                                    │
+└──────────────────────────┬─────────────────────────────────────────┘
+                           │
+                           │ Mobile App / Web Browser
+                           ▼
 ┌────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│                   PENTAGRAM MOBILE APP                              │
-│                    (Flutter Framework)                              │
-│                                                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐              │
-│  │  Dashboard  │  │  Manajemen  │  │   Keuangan   │              │
-│  │  Analytics  │  │    Warga    │  │      RW      │              │
-│  └─────────────┘  └─────────────┘  └──────────────┘              │
-│                                                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐              │
-│  │  Broadcast  │  │    Pesan    │  │     Log      │              │
-│  │  & Kegiatan │  │    Warga    │  │  Aktivitas   │              │
-│  └─────────────┘  └─────────────┘  └──────────────┘              │
-│                                                                     │
-└──────┬────────────────────────────────────┬─────────────────────────┘
+│                                                                    │
+│                   PENTAGRAM MOBILE APP                             │
+│                    (Flutter Framework)                             │
+│                                                                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐                │
+│  │  Dashboard  │  │  Manajemen  │  │   Keuangan   │                │
+│  │  Analytics  │  │    Warga    │  │      RW      │                │
+│  └─────────────┘  └─────────────┘  └──────────────┘                │
+│                                                                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐                │
+│  │  Broadcast  │  │    Pesan    │  │     Log      │                │
+│  │  & Kegiatan │  │    Warga    │  │  Aktivitas   │                │
+│  └─────────────┘  └─────────────┘  └──────────────┘                │
+│                                                                    │
+└──────┬────────────────────────────────────┬────────────────────────┘
        │                                    │
        │ Firebase SDK                       │ HTTPS API Call
        │                                    │
@@ -157,22 +153,22 @@ Aplikasi mobile cross-platform Flutter dengan arsitektur lengkap:
 ┌──────────────────────────┐      ┌─────────────────────────────────┐
 │   FIREBASE SERVICES      │      │    EXTERNAL ML API              │
 │                          │      │                                 │
-│  • Authentication        │      │  ┌──────────────────────────┐  │
-│  • Cloud Firestore       │      │  │   Flask Application      │  │
-│  • Realtime Database     │◄─────┤  │   (Python Backend)       │  │
-│  • Cloud Storage         │      │  └──────────┬───────────────┘  │
+│  • Authentication        │      │  ┌──────────────────────────┐   │
+│  • Cloud Firestore       │      │  │   Flask Application      │   │
+│  • Realtime Database     │◄─────┤  │   (Python Backend)       │   │
+│  • Cloud Storage         │      │  └──────────┬───────────────┘   │
 │  • Cloud Messaging (FCM) │      │             │                   │
 │  • Hosting (Web)         │      │             ▼                   │
-│                          │      │  ┌──────────────────────────┐  │
-└──────────────────────────┘      │  │  TFLite Model Inference  │  │
-                                  │  │  (CNN Fraud Detection)   │  │
-                                  │  └──────────┬───────────────┘  │
+│                          │      │  ┌──────────────────────────┐   │
+└──────────────────────────┘      │  │  TFLite Model Inference  │   │
+                                  │  │  (CNN Fraud Detection)   │   │
+                                  │  └──────────┬───────────────┘   │
                                   │             │                   │
                                   │             ▼                   │
-                                  │  ┌──────────────────────────┐  │
-                                  │  │   PCVK Preprocessing     │  │
-                                  │  │   (OpenCV + HOG + SVM)   │  │
-                                  │  └──────────────────────────┘  │
+                                  │  ┌──────────────────────────┐   │
+                                  │  │   PCVK Preprocessing     │   │
+                                  │  │   (OpenCV + HOG + SVM)   │   │
+                                  │  └──────────────────────────┘   │
                                   └─────────────────────────────────┘
 ```
 
@@ -183,7 +179,7 @@ Aplikasi mobile cross-platform Flutter dengan arsitektur lengkap:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  1. USER ACTION                                                 │
-│     Warga upload foto KTP melalui Pentagram App                │
+│     Warga upload foto KTP melalui Pentagram App                 │
 └────────────────┬────────────────────────────────────────────────┘
                  │
                  ▼
@@ -241,7 +237,7 @@ Aplikasi mobile cross-platform Flutter dengan arsitektur lengkap:
 │     • SVM classification (0-9)                                  │
 │     • NIK reconstruction from digits                            │
 │     • Confidence score validation                               │
-│     Output: {NIK: "3201234567890123", confidence: 0.95}        │
+│     Output: {NIK: "3201234567890123", confidence: 0.95}         │
 └────────────────┬────────────────────────────────────────────────┘
                  │
                  ▼
@@ -260,7 +256,7 @@ Aplikasi mobile cross-platform Flutter dengan arsitektur lengkap:
 │  8. SAVE TO FIREBASE                                            │
 │     IF VALID:                                                   │
 │       • Save KTP image to Firebase Storage                      │
-│       • Create/Update user document in Firestore               │
+│       • Create/Update user document in Firestore                │
 │       • Set verification status = "verified"                    │
 │       • Log activity to audit trail                             │
 │     IF FRAUD:                                                   │
