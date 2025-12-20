@@ -4,6 +4,7 @@ import 'package:pentagram/pages/main_page.dart';
 import 'package:pentagram/utils/app_colors.dart';
 import 'package:pentagram/pages/register/register_page.dart';
 import 'package:pentagram/providers/auth_providers.dart';
+import 'package:pentagram/providers/current_user_provider.dart';
 
 class LoginHeader extends StatelessWidget {
   const LoginHeader({super.key});
@@ -60,6 +61,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     final ok = await ref.read(authControllerProvider.notifier).login(email, password);
     if (!mounted) return;    
     if (ok) {
+      // Set waiting for data
+      ref.read(authControllerProvider.notifier).setWaitingForData(true);
+
+      // Tunggu sampai data user tersedia sebelum masuk ke dashboard
+      await _waitForUserData();
+
+      // Stop waiting
+      ref.read(authControllerProvider.notifier).setWaitingForData(false);
+
       // Add a smooth transition ke halaman utama
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -82,6 +92,29 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
+    }
+  }
+
+  /// Menunggu data user tersedia dari Firestore sebelum masuk dashboard
+  Future<void> _waitForUserData() async {
+    const maxWaitTime = Duration(seconds: 10); // Timeout maksimal 10 detik
+    final startTime = DateTime.now();
+
+    while (true) {
+      final userAsync = ref.read(currentAppUserProvider);
+      if (userAsync.hasValue && userAsync.value != null) {
+        // Data user sudah tersedia
+        break;
+      }
+
+      // Cek timeout
+      if (DateTime.now().difference(startTime) > maxWaitTime) {
+        // Timeout, lanjutkan saja agar tidak stuck
+        break;
+      }
+
+      // Tunggu sebentar sebelum cek lagi
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
@@ -140,7 +173,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             ],
           ),
         ),
-        if (authState.isLoading)
+        if (authState.isLoading || authState.isWaitingForData)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -274,7 +307,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                 : null,
           ),
           child: ElevatedButton(
-            onPressed: ref.watch(authControllerProvider).isLoading ? null : _login,
+            onPressed: (ref.watch(authControllerProvider).isLoading || ref.watch(authControllerProvider).isWaitingForData) ? null : _login,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
@@ -284,7 +317,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               ),
               disabledBackgroundColor: Colors.transparent,
             ),
-      child: ref.watch(authControllerProvider).isLoading
+      child: (ref.watch(authControllerProvider).isLoading || ref.watch(authControllerProvider).isWaitingForData)
                 ? const SizedBox(
                     height: 24,
                     width: 24,

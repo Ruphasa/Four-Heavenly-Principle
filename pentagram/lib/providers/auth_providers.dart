@@ -8,22 +8,26 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
+  final bool isWaitingForData;
   final String? errorMessage;
 
   const AuthState({
     this.isLoading = false,
     this.isAuthenticated = false,
+    this.isWaitingForData = false,
     this.errorMessage,
   });
 
   AuthState copyWith({
     bool? isLoading,
     bool? isAuthenticated,
+    bool? isWaitingForData,
     String? errorMessage,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      isWaitingForData: isWaitingForData ?? this.isWaitingForData,
       errorMessage: errorMessage,
     );
   }
@@ -67,7 +71,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, isWaitingForData: false);
     try {
       await _ref.read(authServiceProvider).logout();
       state = const AuthState(isAuthenticated: false);
@@ -86,6 +90,11 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(isAuthenticated: true);
     }
     return isLoggedIn;
+  }
+
+  /// Set waiting for data state
+  void setWaitingForData(bool waiting) {
+    state = state.copyWith(isWaitingForData: waiting);
   }
 }
 
