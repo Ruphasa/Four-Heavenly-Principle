@@ -7,6 +7,11 @@ class FCMService {
 
   /// Initialize FCM and request permissions
   Future<void> initialize() async {
+    // Skip FCM initialization on web platforms
+    if (kIsWeb) {
+      return;
+    }
+
     // Request permission for iOS
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
@@ -60,23 +65,39 @@ class FCMService {
 
   /// Get FCM token
   Future<String?> getToken() async {
+    // Return null for web platforms
+    if (kIsWeb) {
+      return null;
+    }
     return await _firebaseMessaging.getToken();
   }
 
   /// Subscribe to topic
   Future<void> subscribeToTopic(String topic) async {
+    // Skip for web platforms
+    if (kIsWeb) {
+      return;
+    }
     await _firebaseMessaging.subscribeToTopic(topic);
     // Subscribed to topic logging removed
   }
 
   /// Unsubscribe from topic
   Future<void> unsubscribeFromTopic(String topic) async {
+    // Skip for web platforms
+    if (kIsWeb) {
+      return;
+    }
     await _firebaseMessaging.unsubscribeFromTopic(topic);
     // Unsubscribed from topic logging removed
   }
 
   /// Delete FCM token
   Future<void> deleteToken() async {
+    // Skip for web platforms
+    if (kIsWeb) {
+      return;
+    }
     await _firebaseMessaging.deleteToken();
     // FCM token deleted logging removed
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pentagram/pages/login/login_page.dart';
 import 'package:pentagram/pages/main_page.dart';
@@ -100,16 +101,19 @@ class _AuthCheckerState extends ConsumerState<AuthChecker> {
     await fcmService.subscribeToTopic('pentagramMessageToken');
 
     // Simpan FCM token ke dokumen users/{userId} untuk user yang sudah login
-    try {
-      final token = await fcmService.getToken();
-      if (token != null && token.isNotEmpty) {
-        final userId = await ref.read(currentUserIdProvider.future);
-        if (userId != null && userId.isNotEmpty) {
-          final fcmNotificationService = ref.read(fcmNotificationServiceProvider);
-          await fcmNotificationService.updateUserFCMToken(userId, token);
+    // Skip untuk web karena FCM tidak didukung
+    if (!kIsWeb) {
+      try {
+        final token = await fcmService.getToken();
+        if (token != null && token.isNotEmpty) {
+          final userId = await ref.read(currentUserIdProvider.future);
+          if (userId != null && userId.isNotEmpty) {
+            final fcmNotificationService = ref.read(fcmNotificationServiceProvider);
+            await fcmNotificationService.updateUserFCMToken(userId, token);
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     // Tidak perlu navigate, widget akan rebuild otomatis karena state berubah
   }
